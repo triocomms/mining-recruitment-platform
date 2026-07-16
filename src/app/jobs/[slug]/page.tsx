@@ -5,6 +5,54 @@ import { auth } from "@/lib/auth";
 import { formatSalary } from "@/lib/utils";
 import { ApplyPanel } from "@/components/ApplyPanel";
 
+/** schema.org/JobPosting structured data for Google Jobs indexing. */
+function jobPostingJsonLd(job: any) {
+  const employment: Record<string, string> = {
+    FULL_TIME: "FULL_TIME",
+    PART_TIME: "PART_TIME",
+    CONTRACT: "CONTRACTOR",
+    CASUAL: "PER_DIEM",
+    APPRENTICESHIP: "INTERN",
+  };
+  const data: Record<string, unknown> = {
+    "@context": "https://schema.org/",
+    "@type": "JobPosting",
+    title: job.title,
+    description: job.description,
+    datePosted: job.publishedAt?.toISOString(),
+    validThrough: job.expiresAt?.toISOString(),
+    employmentType: employment[job.employmentType] ?? "FULL_TIME",
+    hiringOrganization: {
+      "@type": "Organization",
+      name: job.company.name,
+      sameAs: job.company.website ?? undefined,
+    },
+    jobLocation: {
+      "@type": "Place",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: job.city ?? undefined,
+        addressRegion: job.region ?? undefined,
+        addressCountry: job.countryCode,
+      },
+    },
+    directApply: true,
+  };
+  if (job.salaryMin || job.salaryMax) {
+    data.baseSalary = {
+      "@type": "MonetaryAmount",
+      currency: job.salaryCurrency ?? "USD",
+      value: {
+        "@type": "QuantitativeValue",
+        minValue: job.salaryMin ?? undefined,
+        maxValue: job.salaryMax ?? undefined,
+        unitText: job.salaryPeriod === "HOUR" ? "HOUR" : job.salaryPeriod === "DAY" ? "DAY" : "YEAR",
+      },
+    };
+  }
+  return data;
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function JobPage({ params }: { params: { slug: string } }) {
@@ -39,6 +87,12 @@ export default async function JobPage({ params }: { params: { slug: string } }) 
 
   return (
     <article className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      {job.status === "PUBLISHED" && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd(job)) }}
+        />
+      )}
       <div>
         <p className="text-sm text-ink/60">
           <Link href={`/companies/${job.company.slug}`} className="font-semibold text-oxide hover:underline">

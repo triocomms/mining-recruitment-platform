@@ -156,6 +156,7 @@ model CandidateProfile {
   bookmarkedBy      CandidateBookmark[]
   threads           MessageThread[]
   promotions        PromotionListing[]
+  companyReviews    CompanyReview[]
 
   @@index([visibility])
   @@index([countryCode, region])
@@ -205,6 +206,7 @@ model Company {
   bookmarks      CandidateBookmark[]
   threads        MessageThread[]
   overages       OveragePurchase[]
+  reviews        CompanyReview[]
 
   @@index([verificationStatus])
 }
@@ -452,13 +454,29 @@ model BlogPost {
   excerpt     String?
   body        String
   coverKey    String?
+  coverAlt    String?
   status      BlogPostStatus @default(DRAFT)
   curatedRank Int? // admin-set homepage ordering; null = not featured
   publishedAt DateTime?
   createdAt   DateTime       @default(now())
 
+  images BlogPostImage[]
+
   @@index([status, publishedAt])
   @@index([curatedRank])
+}
+
+// Gallery images for company posts (site/facility showcases). Alt text is
+// mandatory for accessibility and SEO.
+model BlogPostImage {
+  id      String   @id @default(cuid())
+  postId  String
+  post    BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  key     String
+  altText String
+  order   Int      @default(0)
+
+  @@index([postId, order])
 }
 
 enum ReportStatus {
@@ -551,4 +569,29 @@ model CronRun {
   detail     String?
 
   @@index([job, startedAt])
+}
+
+// ─────────────────────────────────────────────── Employer reviews
+
+enum ReviewStatus {
+  PUBLISHED
+  HIDDEN // moderated off via the report pipeline
+}
+
+// One review per candidate per company; only candidates who applied may review.
+model CompanyReview {
+  id          String           @id @default(cuid())
+  companyId   String
+  company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  candidateId String
+  candidate   CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  rating      Int // 1–5, validated at the API layer
+  title       String?
+  body        String
+  status      ReviewStatus     @default(PUBLISHED)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([companyId, candidateId])
+  @@index([companyId, status])
 }

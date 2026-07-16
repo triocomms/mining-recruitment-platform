@@ -32,7 +32,15 @@ export default async function NewsIndexPage() {
         <p className="card mt-8 text-sm text-ink/60">No articles published yet — check back soon.</p>
       ) : (
         <>
-          <Link href={`/news/${featured.slug}`} className="card mt-8 block border-l-4 border-l-oregold">
+          <Link href={`/news/${featured.slug}`} className="card mt-8 block overflow-hidden border-l-4 border-l-oregold">
+            {featured.coverKey && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`/api/files?key=${encodeURIComponent(featured.coverKey)}`}
+                alt={featured.coverAlt ?? ""}
+                className="mb-4 aspect-[2/1] w-full rounded-lg object-cover"
+              />
+            )}
             <p className="label">Featured</p>
             <h2 className="font-display text-2xl uppercase tracking-wide hover:underline">{featured.title}</h2>
             {featured.excerpt && <p className="mt-2 text-ink/70">{featured.excerpt}</p>}
@@ -45,6 +53,14 @@ export default async function NewsIndexPage() {
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {rest.map((p) => (
               <Link key={p.id} href={`/news/${p.slug}`} className="card block">
+                {p.coverKey && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`/api/files?key=${encodeURIComponent(p.coverKey)}`}
+                    alt={p.coverAlt ?? ""}
+                    className="mb-3 aspect-[2/1] w-full rounded-lg object-cover"
+                  />
+                )}
                 <h3 className="font-semibold hover:underline">{p.title}</h3>
                 {p.excerpt && <p className="mt-1 line-clamp-3 text-sm text-ink/60">{p.excerpt}</p>}
                 <p className="mt-2 text-xs text-ink/50">

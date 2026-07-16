@@ -29,6 +29,13 @@ export async function POST(req: NextRequest) {
     where: { id: report.id },
     data: { status: d.status, resolutionNote: d.note, resolvedAt: new Date() },
   });
+
+  // Upholding a report against a review moderates it off the site.
+  if (d.status === "RESOLVED" && report.targetType === "REVIEW") {
+    await prisma.companyReview
+      .update({ where: { id: report.targetId }, data: { status: "HIDDEN" } })
+      .catch(() => {}); // review may already be gone
+  }
   await logAdminAction(
     admin.id,
     d.status === "RESOLVED" ? "REPORT_RESOLVE" : "REPORT_DISMISS",

@@ -4,12 +4,27 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { makeSlug } from "@/lib/utils";
 
-const schema = z.object({
-  title: z.string().trim().min(4).max(160),
-  excerpt: z.string().trim().max(300).optional(),
-  body: z.string().trim().min(50),
-  publish: z.boolean().default(false),
-});
+const schema = z
+  .object({
+    title: z.string().trim().min(4).max(160),
+    excerpt: z.string().trim().max(300).optional(),
+    body: z.string().trim().min(50),
+    coverKey: z.string().startsWith("blogCover/").optional(),
+    coverAlt: z.string().trim().max(200).optional(),
+    gallery: z
+      .array(
+        z.object({
+          key: z.string().startsWith("blogImage/"),
+          altText: z.string().trim().min(3, "Alt text is required on every image").max(200),
+        })
+      )
+      .max(12)
+      .default([]),
+    publish: z.boolean().default(false),
+  })
+  .refine((d) => !d.coverKey || (d.coverAlt && d.coverAlt.length >= 3), {
+    message: "Alt text is required for the cover image",
+  });
 
 /** Company blog posts (employers) or editorial posts (admins). */
 export async function POST(req: NextRequest) {
@@ -41,8 +56,13 @@ export async function POST(req: NextRequest) {
       slug: makeSlug(d.title),
       excerpt: d.excerpt,
       body: d.body,
+      coverKey: d.coverKey,
+      coverAlt: d.coverAlt,
       status: d.publish ? "PUBLISHED" : "DRAFT",
       publishedAt: d.publish ? new Date() : null,
+      images: {
+        create: d.gallery.map((g, i) => ({ key: g.key, altText: g.altText, order: i })),
+      },
     },
   });
   return NextResponse.json({ id: post.id, slug: post.slug }, { status: 201 });

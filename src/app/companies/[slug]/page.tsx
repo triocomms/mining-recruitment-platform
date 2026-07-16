@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { JobCard } from "@/components/JobCard";
+import { ReviewForm } from "@/components/ReviewForm";
 import { timeAgo } from "@/lib/utils";
 
 export const revalidate = 300;
@@ -33,9 +35,40 @@ export default async function CompanyPage({ params }: { params: { slug: string }
         take: 6,
       },
       _count: { select: { followers: true } },
+      reviews: {
+        where: { status: "PUBLISHED" },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        include: { candidate: { select: { firstName: true, lastName: true } } },
+      },
     },
   });
   if (!company) notFound();
+
+  const avgRating =
+    company.reviews.length > 0
+      ? company.reviews.reduce((a, r) => a + r.rating, 0) / company.reviews.length
+      : null;
+
+  // Can the signed-in candidate review this company? (must have applied)
+  const session = await auth();
+  let reviewerState: { eligible: boolean; existing: { rating: number; title: string | null; body: string } | null } = { eligible: false, existing: null };
+  if (session?.user.role === "CANDIDATE") {
+    const candidate = await prisma.candidateProfile.findUnique({ where: { userId: session.user.id } });
+    if (candidate) {
+      const applied = await prisma.application.findFirst({
+        where: { candidateId: candidate.id, job: { companyId: company.id } },
+        select: { id: true },
+      });
+      if (applied) {
+        const existing = await prisma.companyReview.findUnique({
+          where: { companyId_candidateId: { companyId: company.id, candidateId: candidate.id } },
+          select: { rating: true, title: true, body: true },
+        });
+        reviewerState = { eligible: true, existing };
+      }
+    }
+  }
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
@@ -50,6 +83,11 @@ export default async function CompanyPage({ params }: { params: { slug: string }
           <p className="mt-1 text-sm text-ink/60">
             {[company.countryCode, company.size && `${company.size} employees`].filter(Boolean).join(" · ")}
             {company._count.followers > 0 && ` · ${company._count.followers} follower${company._count.followers === 1 ? "" : "s"}`}
+            {avgRating !== null && (
+              <span className="ml-1.5 text-oregold" aria-label={`Average rating ${avgRating.toFixed(1)} of 5`}>
+                ★ {avgRating.toFixed(1)} ({company.reviews.length})
+              </span>
+            )}
           </p>
         </div>
         {company.website && (
@@ -78,6 +116,52 @@ export default async function CompanyPage({ params }: { params: { slug: string }
             ))}
           </div>
         )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="font-display text-2xl uppercase tracking-wide">
+          Candidate reviews{company.reviews.length > 0 ? ` (${company.reviews.length})` : ""}
+        </h2>
+        {avgRating !== null && (
+          <p className="mt-1 text-sm text-ink/60">
+            <span className="text-oregold">★ {avgRating.toFixed(1)}</span> average from candidates who applied here.
+          </p>
+        )}
+        <div className="mt-3 grid gap-4 lg:grid-cols-[1fr_320px]">
+          <div>
+            {company.reviews.length === 0 ? (
+              <p className="card text-sm text-ink/60">
+                No reviews yet. Candidates who have applied to {company.name} can leave the first one.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {company.reviews.map((r) => (
+                  <li key={r.id} className="card text-sm">
+                    <p className="text-oregold" aria-label={`${r.rating} of 5 stars`}>
+                      {"★".repeat(r.rating)}
+                      <span className="text-ink/15">{"★".repeat(5 - r.rating)}</span>
+                    </p>
+                    {r.title && <p className="mt-1 font-semibold">{r.title}</p>}
+                    <p className="mt-1 whitespace-pre-wrap text-ink/80">{r.body}</p>
+                    <p className="mt-2 text-xs text-ink/50">
+                      {r.candidate.firstName} {r.candidate.lastName.slice(0, 1)}. · {timeAgo(r.createdAt)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div>
+            {reviewerState.eligible ? (
+              <ReviewForm companyId={company.id} existing={reviewerState.existing} />
+            ) : (
+              <p className="card text-xs text-ink/50">
+                Reviews are limited to candidates who have applied to this company, so every rating
+                reflects real hiring experience.
+              </p>
+            )}
+          </div>
+        </div>
       </section>
 
       {company.blogPosts.length > 0 && (

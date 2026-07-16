@@ -9,10 +9,16 @@ import { canViewCandidate } from "@/lib/visibility";
  * then redirects to a 5-minute signed URL. Buckets are never public.
  */
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   const key = req.nextUrl.searchParams.get("key");
   if (!key) return NextResponse.json({ error: "Missing key" }, { status: 400 });
+
+  // Blog imagery is public content once attached to a post — no sign-in needed.
+  if (key.startsWith("blogCover/") || key.startsWith("blogImage/")) {
+    return NextResponse.redirect(await presignDownload(key));
+  }
+
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
 
   // Files are keyed as {kind}/{ownerUserId}/{uuid} — owners always have access.
   const ownerUserId = key.split("/")[1];
