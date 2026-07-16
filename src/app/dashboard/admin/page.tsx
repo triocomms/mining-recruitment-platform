@@ -8,7 +8,7 @@ export default async function AdminDashboard() {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
-  const [pendingCompanies, pendingJobs, openReports, posts, suspendedUsers, overagePurchases, activeSubscriptions, stats] = await Promise.all([
+  const [pendingCompanies, pendingJobs, openReports, posts, suspendedUsers, overagePurchases, activeSubscriptions, cronRuns, stats] = await Promise.all([
     prisma.company.findMany({
       where: { verificationStatus: "PENDING" },
       orderBy: { createdAt: "asc" },
@@ -47,6 +47,10 @@ export default async function AdminDashboard() {
       take: 20,
       include: { company: { select: { name: true } } },
     }),
+    prisma.cronRun.findMany({
+      orderBy: { startedAt: "desc" },
+      take: 9,
+    }),
     Promise.all([
       prisma.user.count({ where: { deletedAt: null } }),
       prisma.job.count({ where: { status: "PUBLISHED" } }),
@@ -61,7 +65,11 @@ export default async function AdminDashboard() {
     <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex items-end justify-between gap-3">
         <h1 className="font-display text-3xl uppercase tracking-wide">Admin</h1>
-        <a href="/dashboard/admin/audit" className="text-sm underline">Audit log →</a>
+        <nav className="flex gap-4 text-sm">
+          <a href="/dashboard/admin/analytics" className="underline">Analytics</a>
+          <a href="/dashboard/admin/emails" className="underline">Email</a>
+          <a href="/dashboard/admin/audit" className="underline">Audit log</a>
+        </nav>
       </div>
 
       <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -256,6 +264,38 @@ export default async function AdminDashboard() {
             )}
           </div>
         </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="font-display text-xl uppercase tracking-wide">Scheduled jobs</h2>
+        <p className="mt-1 text-xs text-ink/50">
+          Nightly cron: job-ad expiry, GDPR purge, analytics rollup. Most recent runs below —
+          silence longer than a day means the cron is failing to fire.
+        </p>
+        {cronRuns.length === 0 ? (
+          <p className="card mt-3 text-sm text-ink/60">
+            No runs recorded yet. The cron fires daily at 18:00 UTC (or hit /api/cron/daily manually).
+          </p>
+        ) : (
+          <ul className="mt-3 grid gap-2 sm:grid-cols-3">
+            {cronRuns.map((r) => (
+              <li key={r.id} className="card text-sm">
+                <p className="font-semibold">{r.job}</p>
+                <p className="text-xs">
+                  {r.ok === null ? (
+                    <span className="text-ink/50">running…</span>
+                  ) : r.ok ? (
+                    <span className="text-patina">ok</span>
+                  ) : (
+                    <span className="text-oxide">failed</span>
+                  )}
+                  {" · "}{timeAgo(r.startedAt)}
+                </p>
+                {r.detail && <p className="mt-1 truncate text-xs text-ink/60">{r.detail}</p>}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="mt-10">

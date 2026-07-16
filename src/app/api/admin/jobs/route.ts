@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAdminAction } from "@/lib/audit";
+import { sendEmail } from "@/lib/email";
 
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("APPROVE"), jobId: z.string() }),
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   const job = await prisma.job.findUnique({
     where: { id: d.jobId },
-    include: { company: { include: { subscription: true } } },
+    include: { company: { include: { subscription: true, owner: { select: { email: true } } } } },
   });
   if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
   if (job.status !== "PENDING_REVIEW") {
@@ -47,6 +48,12 @@ export async function POST(req: NextRequest) {
       },
     });
     await logAdminAction(user.id, "JOB_APPROVE", "JOB", job.id);
+    await sendEmail({
+      to: job.company.owner.email,
+      subject: `Your job ad "${job.title}" is now live`,
+      body: `Your ad "${job.title}" passed review and is now published on Orebridge. It will run for 30 days.`,
+      template: "JOB_APPROVED",
+    });
   } else {
     // Rejected ads return to DRAFT with the reason surfaced to the employer.
     // Quota was consumed at submission and is intentionally not refunded.
@@ -55,6 +62,12 @@ export async function POST(req: NextRequest) {
       data: { status: "DRAFT", reviewNotes: d.reason },
     });
     await logAdminAction(user.id, "JOB_REJECT", "JOB", job.id, d.reason);
+    await sendEmail({
+      to: job.company.owner.email,
+      subject: `Your job ad "${job.title}" needs changes`,
+      body: `Your ad "${job.title}" was reviewed and returned to draft.\n\nReason: ${d.reason}\n\nEdit and re-submit it from your employer dashboard.`,
+      template: "JOB_REJECTED",
+    });
   }
 
   return NextResponse.json({ ok: true });

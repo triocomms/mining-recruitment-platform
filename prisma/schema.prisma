@@ -495,3 +495,60 @@ model AdminAuditLog {
   @@index([createdAt])
   @@index([targetType, targetId])
 }
+
+// ─────────────────────────────────────────────── Ops: analytics, email, cron
+
+// One row per UTC day, populated by the daily cron (and backfilled on demand).
+model DailyStat {
+  id                  String   @id @default(cuid())
+  date                DateTime @unique
+  candidateSignups    Int      @default(0)
+  employerSignups     Int      @default(0)
+  jobsPosted          Int      @default(0)
+  applications        Int      @default(0)
+  activeSubs          Int      @default(0)
+  mrrCents            Int      @default(0)
+  mrrCentsBronze      Int      @default(0)
+  mrrCentsSilver      Int      @default(0)
+  mrrCentsGold        Int      @default(0)
+  churnedSubs         Int      @default(0)
+  overageRevenueCents Int      @default(0)
+}
+
+model EmailLog {
+  id          String   @id @default(cuid())
+  to          String
+  subject     String
+  template    String // "KYB_DECISION" | "JOB_REJECTED" | "USER_SUSPENDED" | "BROADCAST" | ...
+  body        String
+  status      String // "SENT" | "FAILED"
+  error       String?
+  broadcastId String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([to])
+}
+
+model Broadcast {
+  id          String   @id @default(cuid())
+  subject     String
+  body        String
+  segment     String // human-readable audience description
+  recipients  Int      @default(0)
+  sent        Int      @default(0)
+  failed      Int      @default(0)
+  createdById String
+  createdAt   DateTime @default(now())
+}
+
+model CronRun {
+  id         String    @id @default(cuid())
+  job        String // "expire-jobs" | "purge-deleted" | "daily-rollup"
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  ok         Boolean?
+  detail     String?
+
+  @@index([job, startedAt])
+}

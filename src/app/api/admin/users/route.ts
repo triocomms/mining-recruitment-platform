@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAdminAction } from "@/lib/audit";
+import { sendEmail } from "@/lib/email";
 
 const schema = z.discriminatedUnion("action", [
   z.object({
@@ -36,6 +37,12 @@ export async function POST(req: NextRequest) {
       data: { suspendedAt: new Date(), suspendedReason: d.reason },
     });
     await logAdminAction(admin.id, "USER_SUSPEND", "USER", user.id, d.reason);
+    await sendEmail({
+      to: user.email,
+      subject: "Your Orebridge account has been suspended",
+      body: `Your account has been suspended.\n\nReason: ${d.reason}\n\nIf you believe this is a mistake, reply to this email to appeal.`,
+      template: "USER_SUSPENDED",
+    });
     return NextResponse.json({ ok: true });
   }
 

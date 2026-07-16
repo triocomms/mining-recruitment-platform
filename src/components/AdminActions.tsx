@@ -303,3 +303,35 @@ export function AdminRefundButton(props: {
     </div>
   );
 }
+
+export function AdminEmailResendButton(props: { emailLogId: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function resend() {
+    setBusy(true);
+    setError(null);
+    const res = await fetch("/api/admin/emails", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emailLogId: props.emailLogId }),
+    });
+    setBusy(false);
+    if (res.ok) {
+      router.refresh();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Resend failed");
+    }
+  }
+
+  return (
+    <div className="text-right">
+      <button className="btn-ghost text-sm" disabled={busy} onClick={resend}>
+        {busy ? "Sending…" : "Resend"}
+      </button>
+      {error && <p className="mt-1 text-xs text-oxide">{error}</p>}
+    </div>
+  );
+}
