@@ -73,4 +73,5 @@ export default async function CandidatePrivacyPage() {
         )}
       </section>
     </main>
-  )
+  );
+}

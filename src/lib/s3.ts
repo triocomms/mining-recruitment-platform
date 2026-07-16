@@ -44,4 +44,5 @@ export async function presignDownload(key: string, expiresIn = 300) {
 }
 
 export async function deleteObject(key: string) {
-  await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, 
+  await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+}
