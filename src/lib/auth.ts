@@ -24,6 +24,9 @@ export const authOptions: NextAuthOptions = {
         });
         // Soft-deleted accounts cannot log in.
         if (!user || user.deletedAt) return null;
+        // Suspended accounts are blocked without triggering erasure.
+        // The thrown message is surfaced to the login form as res.error.
+        if (user.suspendedAt) throw new Error("SUSPENDED");
         const ok = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!ok) return null;
         return { id: user.id, email: user.email, role: user.role } as any;

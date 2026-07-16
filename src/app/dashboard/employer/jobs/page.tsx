@@ -73,9 +73,14 @@ export default async function EmployerJobsPage() {
                       {j.source !== "MANUAL" && ` · ${j.source.toLowerCase()} import`}
                       {j.isPriority && " · priority"}
                     </p>
+                    {j.status === "DRAFT" && j.reviewNotes && (
+                      <p className="mt-1 text-xs text-oxide">
+                        Rejected by moderation: {j.reviewNotes}
+                      </p>
+                    )}
                   </div>
-                  <span className={`tag shrink-0 ${j.status === "PUBLISHED" ? "bg-patina/15 text-patina" : j.status === "DRAFT" ? "bg-oregold/20" : ""}`}>
-                    {j.status.toLowerCase()}
+                  <span className={`tag shrink-0 ${j.status === "PUBLISHED" ? "bg-patina/15 text-patina" : j.status === "DRAFT" ? "bg-oregold/20" : j.status === "PENDING_REVIEW" ? "bg-oregold/30" : ""}`}>
+                    {j.status === "PENDING_REVIEW" ? "in review" : j.status.toLowerCase()}
                   </span>
                 </li>
               ))}

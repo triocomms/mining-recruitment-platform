@@ -24,6 +24,9 @@ model User {
   updatedAt    DateTime  @updatedAt
   // GDPR: soft delete first, hard purge by scheduled job after grace period.
   deletedAt    DateTime?
+  // Moderation: suspension blocks login without triggering erasure.
+  suspendedAt     DateTime?
+  suspendedReason String?
 
   candidate    CandidateProfile?
   company      Company?          @relation("CompanyOwner")
@@ -32,6 +35,7 @@ model User {
   messages     Message[]
   reports      Report[]          @relation("Reporter")
   blogPosts    BlogPost[]        @relation("EditorialAuthor")
+  auditEntries AdminAuditLog[]   @relation("AuditAdmin")
 }
 
 // Immutable audit trail of consent — never update rows, only append.
@@ -209,6 +213,7 @@ model Company {
 
 enum JobStatus {
   DRAFT
+  PENDING_REVIEW // awaiting admin approval (new/untrusted companies or spam-flagged)
   PUBLISHED
   EXPIRED
   ARCHIVED
@@ -258,6 +263,8 @@ model Job {
   status         JobStatus      @default(DRAFT)
   source         JobSource      @default(MANUAL)
   externalRef    String? // dedupe key for CSV/RSS re-imports
+  reviewNotes    String? // admin rejection reason, surfaced to the employer
+  moderationFlags String[] @default([]) // spam-heuristic flags set at submission
   isPriority     Boolean        @default(false) // Gold tier placement
   publishedAt    DateTime?
   expiresAt      DateTime?
@@ -365,6 +372,7 @@ model OveragePurchase {
   amountCents     Int
   currency        String   @default("usd")
   consumed        Boolean  @default(false) // one purchase = one extra job slot
+  refundedAt      DateTime? // set when an admin refunds this purchase
   createdAt       DateTime @default(now())
 }
 
@@ -467,5 +475,23 @@ model Report {
   targetId   String
   reason     String
   status     ReportStatus @default(OPEN)
+  resolutionNote String?
+  resolvedAt     DateTime?
   createdAt  DateTime     @default(now())
+}
+
+// ─────────────────────────────────────────────── Admin audit trail
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  admin      User     @relation("AuditAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+  action     String // e.g. "JOB_APPROVE", "USER_SUSPEND", "REFUND_ISSUE"
+  targetType String // "JOB" | "USER" | "COMPANY" | "REPORT" | "BLOG_POST" | "PAYMENT"
+  targetId   String
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
 }

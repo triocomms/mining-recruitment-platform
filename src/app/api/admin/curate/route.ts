@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { logAdminAction } from "@/lib/audit";
 
 const schema = z.object({
   postId: z.string(),
@@ -24,5 +25,17 @@ export async function POST(req: NextRequest) {
       ...(parsed.data.hide !== undefined ? { status: parsed.data.hide ? "HIDDEN" : "PUBLISHED" } : {}),
     },
   });
+  await logAdminAction(
+    user.id,
+    parsed.data.hide !== undefined
+      ? parsed.data.hide
+        ? "BLOG_HIDE"
+        : "BLOG_UNHIDE"
+      : parsed.data.curatedRank === null
+        ? "BLOG_UNFEATURE"
+        : `BLOG_FEATURE_${parsed.data.curatedRank}`,
+    "BLOG_POST",
+    parsed.data.postId
+  );
   return NextResponse.json({ ok: true });
 }

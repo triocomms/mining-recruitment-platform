@@ -21,7 +21,11 @@ export function LoginForm() {
     });
     setBusy(false);
     if (res?.error) {
-      setError("Email or password is incorrect");
+      setError(
+        res.error.includes("SUSPENDED")
+          ? "This account has been suspended. Contact support if you believe this is a mistake."
+          : "Email or password is incorrect"
+      );
     } else {
       router.push("/dashboard/candidate");
       router.refresh();

@@ -4,7 +4,8 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { makeSlug } from "@/lib/utils";
 import { consumePublishSlot, getJobQuota } from "@/lib/quota";
-import { Commodity, EmploymentType, SalaryPeriod, SiteExperience } from "@prisma/client";
+import { detectSpamSignals, companyIsTrusted } from "@/lib/moderation";
+import { Commodity, EmploymentType, SalaryPeriod, SiteExperience, JobStatus } from "@prisma/client";
 
 const jobSchema = z.object({
   title: z.string().trim().min(4).max(120),
@@ -41,8 +42,11 @@ export async function POST(req: NextRequest) {
   }
   const d = parsed.data;
 
-  let status: "DRAFT" | "PUBLISHED" = "DRAFT";
+  let status: JobStatus = "DRAFT";
+  let moderationFlags: string[] = [];
   if (d.publish) {
+    // Quota is consumed at submission time (not approval time) so a rejected
+    // ad can't be re-submitted for free to bypass quota.
     const ok = await consumePublishSlot(company.id);
     if (!ok) {
       const quota = await getJobQuota(company.id);
@@ -51,7 +55,13 @@ export async function POST(req: NextRequest) {
         { status: 402 }
       );
     }
-    status = "PUBLISHED";
+    // Trust routing: verified companies with a clean history auto-publish;
+    // new/unverified companies and spam-flagged ads await admin review.
+    moderationFlags = await detectSpamSignals(company.id, d.title, d.description);
+    const trusted =
+      moderationFlags.length === 0 &&
+      (await companyIsTrusted(company.id, company.verificationStatus));
+    status = trusted ? "PUBLISHED" : "PENDING_REVIEW";
   }
 
   const isGold = company.subscription?.status === "ACTIVE" && company.subscription.tier === "GOLD";
@@ -76,6 +86,7 @@ export async function POST(req: NextRequest) {
       salaryCurrency: d.salaryCurrency,
       salaryPeriod: d.salaryPeriod,
       status,
+      moderationFlags,
       isPriority: status === "PUBLISHED" && isGold,
       publishedAt: status === "PUBLISHED" ? new Date() : null,
       expiresAt: status === "PUBLISHED" ? new Date(Date.now() + 30 * 24 * 3600 * 1000) : null,

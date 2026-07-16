@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { logAdminAction } from "@/lib/audit";
 import { VerificationStatus } from "@prisma/client";
 
 const schema = z.object({
@@ -22,5 +23,12 @@ export async function POST(req: NextRequest) {
     where: { id: parsed.data.companyId },
     data: { verificationStatus: parsed.data.status, kybNotes: parsed.data.notes },
   });
+  await logAdminAction(
+    user.id,
+    `KYB_${parsed.data.status}`,
+    "COMPANY",
+    parsed.data.companyId,
+    parsed.data.notes
+  );
   return NextResponse.json({ ok: true });
 }
