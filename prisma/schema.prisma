@@ -1,0 +1,471 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────── Identity & privacy
+
+enum Role {
+  CANDIDATE
+  EMPLOYER
+  ADMIN
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  // GDPR: soft delete first, hard purge by scheduled job after grace period.
+  deletedAt    DateTime?
+
+  candidate    CandidateProfile?
+  company      Company?          @relation("CompanyOwner")
+  consents     ConsentRecord[]
+  dataRequests DataRequest[]
+  messages     Message[]
+  reports      Report[]          @relation("Reporter")
+  blogPosts    BlogPost[]        @relation("EditorialAuthor")
+}
+
+// Immutable audit trail of consent — never update rows, only append.
+model ConsentRecord {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      ConsentType
+  granted   Boolean
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime    @default(now())
+
+  @@index([userId, type, createdAt])
+}
+
+enum ConsentType {
+  TERMS
+  PRIVACY_POLICY
+  MARKETING_EMAIL
+  PROFILE_VISIBILITY // explicit consent that verified employers may view profile
+  COOKIES_ANALYTICS
+}
+
+// GDPR Art. 15 (access/export) and Art. 17 (erasure) request tracking.
+model DataRequest {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        DataRequestType
+  status      DataRequestStatus @default(PENDING)
+  requestedAt DateTime          @default(now())
+  completedAt DateTime?
+  notes       String?
+}
+
+enum DataRequestType {
+  EXPORT
+  DELETE
+}
+
+enum DataRequestStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+// ─────────────────────────────────────────────── Candidates
+
+enum ProfileVisibility {
+  PRIVATE // visible to nobody except the candidate + companies they applied to
+  PUBLIC  // visible ONLY to authenticated, admin-verified employers (server-enforced)
+}
+
+enum FifoPreference {
+  FIFO
+  DIDO
+  RESIDENTIAL
+  FLEXIBLE
+}
+
+enum SiteExperience {
+  OPEN_PIT
+  UNDERGROUND
+  PROCESSING_PLANT
+  EXPLORATION
+  PORT_RAIL
+  SMELTER_REFINERY
+  WORKSHOP_MAINTENANCE
+  CORPORATE_OFFICE
+}
+
+enum Commodity {
+  GOLD
+  IRON_ORE
+  COAL
+  COPPER
+  LITHIUM
+  NICKEL
+  BAUXITE_ALUMINA
+  URANIUM
+  MINERAL_SANDS
+  RARE_EARTHS
+  ZINC_LEAD
+  OIL_GAS
+  OTHER
+}
+
+model CandidateProfile {
+  id                String            @id @default(cuid())
+  userId            String            @unique
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName         String
+  lastName          String
+  headline          String?
+  summary           String?
+  phone             String?
+  countryCode       String? // ISO 3166-1 alpha-2
+  region            String?
+  city              String?
+  visibility        ProfileVisibility @default(PRIVATE)
+  photoKey          String? // S3 object keys, never public URLs
+  resumeKey         String?
+  coverLetterKey    String?
+  yearsExperience   Int?
+  fifoPreference    FifoPreference?
+  willingToRelocate Boolean           @default(false)
+  availableFrom     DateTime?
+  siteExperience    SiteExperience[]
+  commodities       Commodity[]
+  updatedAt         DateTime          @updatedAt
+
+  certifications    Certification[]
+  applications      Application[]
+  bookmarks         JobBookmark[]
+  followedCompanies CompanyFollow[]
+  bookmarkedBy      CandidateBookmark[]
+  threads           MessageThread[]
+  promotions        PromotionListing[]
+
+  @@index([visibility])
+  @@index([countryCode, region])
+}
+
+// Tickets & certs: "HR licence", "Working at Heights", "First Aid", site inductions...
+model Certification {
+  id          String           @id @default(cuid())
+  candidateId String
+  candidate   CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  name        String
+  issuer      String?
+  referenceNo String?
+  expiresAt   DateTime?
+  documentKey String? // optional scan upload
+}
+
+// ─────────────────────────────────────────────── Employers & companies
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING // KYB docs submitted, awaiting admin review
+  VERIFIED
+  REJECTED
+}
+
+model Company {
+  id                 String             @id @default(cuid())
+  ownerId            String             @unique
+  owner              User               @relation("CompanyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  name               String
+  slug               String             @unique
+  website            String?
+  description        String?
+  logoKey            String?
+  countryCode        String?
+  size               String?
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  kybDocumentKey     String? // business registration doc for admin review
+  kybNotes           String?
+  createdAt          DateTime           @default(now())
+
+  jobs           Job[]
+  subscription   Subscription?
+  blogPosts      BlogPost[]
+  followers      CompanyFollow[]
+  bookmarks      CandidateBookmark[]
+  threads        MessageThread[]
+  overages       OveragePurchase[]
+
+  @@index([verificationStatus])
+}
+
+// ─────────────────────────────────────────────── Jobs
+
+enum JobStatus {
+  DRAFT
+  PUBLISHED
+  EXPIRED
+  ARCHIVED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  CASUAL
+  APPRENTICESHIP
+}
+
+enum SalaryPeriod {
+  HOUR
+  DAY
+  YEAR
+}
+
+enum JobSource {
+  MANUAL
+  CSV
+  RSS // Phase 2
+}
+
+model Job {
+  id             String         @id @default(cuid())
+  companyId      String
+  company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title          String
+  slug           String         @unique
+  description    String
+  roleCategory   String? // e.g. "Drill & Blast", "Fixed Plant Maintenance", "Geology"
+  commodity      Commodity?
+  employmentType EmploymentType @default(FULL_TIME)
+  siteType       SiteExperience?
+  fifo           Boolean        @default(false)
+  rosterPattern  String? // e.g. "2/1", "8/6", "5/2"
+  countryCode    String // ISO 3166-1 alpha-2 — global from day one
+  region         String?
+  city           String?
+  salaryMin      Int?
+  salaryMax      Int?
+  salaryCurrency String? // ISO 4217: AUD, USD, CAD, ZAR, CLP...
+  salaryPeriod   SalaryPeriod?
+  applyUrl       String? // external ATS link (used by CSV/RSS imports)
+  status         JobStatus      @default(DRAFT)
+  source         JobSource      @default(MANUAL)
+  externalRef    String? // dedupe key for CSV/RSS re-imports
+  isPriority     Boolean        @default(false) // Gold tier placement
+  publishedAt    DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime       @default(now())
+
+  applications Application[]
+  bookmarks    JobBookmark[]
+
+  @@unique([companyId, externalRef])
+  @@index([status, publishedAt])
+  @@index([countryCode, region])
+  @@index([commodity])
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  VIEWED
+  SHORTLISTED
+  INTERVIEW
+  OFFER
+  REJECTED
+  WITHDRAWN
+}
+
+model Application {
+  id          String            @id @default(cuid())
+  jobId       String
+  job         Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidateId String
+  candidate   CandidateProfile  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  status      ApplicationStatus @default(SUBMITTED)
+  coverNote   String?
+  resumeKey   String? // snapshot at time of application
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([jobId, candidateId])
+  @@index([candidateId, createdAt])
+}
+
+model JobBookmark {
+  candidateId String
+  candidate   CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobId       String
+  job         Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
+
+  @@id([candidateId, jobId])
+}
+
+model CompanyFollow {
+  candidateId String
+  candidate   CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  companyId   String
+  company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
+
+  @@id([candidateId, companyId])
+}
+
+model CandidateBookmark {
+  companyId   String
+  company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  candidateId String
+  candidate   CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
+
+  @@id([companyId, candidateId])
+}
+
+// ─────────────────────────────────────────────── Billing
+
+enum PlanTier {
+  BRONZE // $299/mo — 25 ads
+  SILVER // $599/mo — 50 ads
+  GOLD   // $999/mo — 100 ads + resume database search + priority placement
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  companyId            String             @unique
+  company              Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tier                 PlanTier
+  status               SubscriptionStatus @default(INCOMPLETE)
+  stripeCustomerId     String             @unique
+  stripeSubscriptionId String             @unique
+  currentPeriodEnd     DateTime?
+  jobsUsedThisPeriod   Int                @default(0)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+}
+
+model OveragePurchase {
+  id              String   @id @default(cuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  stripeSessionId String   @unique
+  amountCents     Int
+  currency        String   @default("usd")
+  consumed        Boolean  @default(false) // one purchase = one extra job slot
+  createdAt       DateTime @default(now())
+}
+
+// Phase 2: candidate "Promote Me" listings. Modeled now so migrations stay clean.
+enum PromotionTier {
+  DAYS_30 // $29
+  DAYS_90 // $79
+}
+
+model PromotionListing {
+  id              String           @id @default(cuid())
+  candidateId     String
+  candidate       CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  tier            PromotionTier
+  headline        String
+  pitch           String
+  stripeSessionId String?          @unique
+  paidAt          DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime         @default(now())
+
+  @@index([expiresAt])
+}
+
+// ─────────────────────────────────────────────── Messaging
+
+model MessageThread {
+  id          String           @id @default(cuid())
+  companyId   String
+  company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  candidateId String
+  candidate   CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  messages Message[]
+
+  @@unique([companyId, candidateId])
+}
+
+model Message {
+  id           String        @id @default(cuid())
+  threadId     String
+  thread       MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderUserId String
+  sender       User          @relation(fields: [senderUserId], references: [id], onDelete: Cascade)
+  body         String
+  readAt       DateTime?
+  createdAt    DateTime      @default(now())
+
+  @@index([threadId, createdAt])
+  @@index([senderUserId, createdAt]) // powers rate limiting
+}
+
+// ─────────────────────────────────────────────── Content & moderation
+
+enum BlogPostType {
+  COMPANY
+  EDITORIAL
+}
+
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN // moderated off
+}
+
+model BlogPost {
+  id          String         @id @default(cuid())
+  type        BlogPostType
+  companyId   String?
+  company     Company?       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  authorId    String?
+  author      User?          @relation("EditorialAuthor", fields: [authorId], references: [id])
+  title       String
+  slug        String         @unique
+  excerpt     String?
+  body        String
+  coverKey    String?
+  status      BlogPostStatus @default(DRAFT)
+  curatedRank Int? // admin-set homepage ordering; null = not featured
+  publishedAt DateTime?
+  createdAt   DateTime       @default(now())
+
+  @@index([status, publishedAt])
+  @@index([curatedRank])
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+model Report {
+  id         String       @id @default(cuid())
+  reporterId String
+  reporter   User         @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType String // "JOB" | "MESSAGE" | "BLOG_POST" | "PROFILE" | "COMPANY"
+  targetId   String
+  reason     String
+  status     ReportStatus @default(OPEN)
+  createdAt  DateTime     @default(now())
+}

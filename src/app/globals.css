@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-bone text-ink font-body antialiased;
+}
+
+/* Signature element: the "core sample" — a strata band echoing a drill core,
+   used as the section divider across the product. */
+.strata {
+  height: 6px;
+  background: linear-gradient(
+    to right,
+    #a6432a 0 22%,
+    #c99a3b 22% 41%,
+    #171b21 41% 63%,
+    #3e8e7e 63% 78%,
+    #f5a300 78% 100%
+  );
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-card px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hivis;
+}
+.btn-primary { @apply btn bg-hivis text-ink hover:bg-hivis-deep; }
+.btn-dark { @apply btn bg-ink text-bone hover:bg-ink-soft; }
+.btn-ghost { @apply btn border border-ink/20 bg-transparent hover:border-ink/50; }
+
+.field {
+  @apply w-full rounded-card border border-ink/20 bg-white px-3.5 py-3 text-sm placeholder:text-ink/40 focus:border-hivis focus:outline-none focus:ring-1 focus:ring-hivis;
+}
+.label { @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink/60; }
+.card { @apply rounded-card border border-ink/10 bg-white p-4 sm:p-5; }
+.tag { @apply inline-flex items-center rounded-full bg-ink/5 px-2.5 py-1 text-xs font-medium text-ink/70; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
