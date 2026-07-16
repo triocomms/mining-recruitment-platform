@@ -29,7 +29,7 @@ export type UploadKind = keyof typeof UPLOAD_RULES;
  *  issued after a server-side authorization check. */
 export async function presignUpload(userId: string, kind: UploadKind, contentType: string) {
   const rule = UPLOAD_RULES[kind];
-  if (!rule.types.includes(contentType as any)) throw new Error("Unsupported file type");
+  if (!(rule.types as readonly string[]).includes(contentType)) throw new Error("Unsupported file type");
   const key = `${kind}/${userId}/${crypto.randomUUID()}`;
   const url = await getSignedUrl(
     s3,
@@ -44,5 +44,4 @@ export async function presignDownload(key: string, expiresIn = 300) {
 }
 
 export async function deleteObject(key: string) {
-  await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
-}
+  await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, 

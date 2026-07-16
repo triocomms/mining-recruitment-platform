@@ -11,7 +11,7 @@ export default async function CandidatePrivacyPage() {
     prisma.candidateProfile.findUnique({ where: { userId: session.user.id } }),
     prisma.dataRequest.findMany({
       where: { userId: session.user.id },
-      orderBy: { createdAt: "desc" },
+      orderBy: { requestedAt: "desc" },
       take: 10,
     }),
     prisma.consentRecord.findMany({
@@ -65,7 +65,7 @@ export default async function CandidatePrivacyPage() {
               <li key={r.id} className="flex justify-between border-b border-ink/10 py-2">
                 <span>{r.type === "EXPORT" ? "Data export" : "Account deletion"}</span>
                 <span className="text-ink/50">
-                  {r.status.toLowerCase()} · {r.createdAt.toISOString().slice(0, 10)}
+                  {r.status.toLowerCase()} · {r.requestedAt.toISOString().slice(0, 10)}
                 </span>
               </li>
             ))}
@@ -73,5 +73,4 @@ export default async function CandidatePrivacyPage() {
         )}
       </section>
     </main>
-  );
-}
+  )
