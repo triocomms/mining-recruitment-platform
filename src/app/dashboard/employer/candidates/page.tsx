@@ -14,6 +14,15 @@ export default async function EmployerCandidatesPage() {
 
   const allowed = await canSearchResumeDatabase(session.user.id);
 
+  const jobs = allowed
+    ? await prisma.job.findMany({
+        where: { companyId: company.id, status: { in: ["PUBLISHED", "PENDING_REVIEW", "DRAFT"] } },
+        orderBy: { createdAt: "desc" },
+        take: 30,
+        select: { id: true, title: true },
+      })
+    : [];
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <h1 className="font-display text-3xl uppercase tracking-wide">Resume database</h1>
@@ -34,7 +43,7 @@ export default async function EmployerCandidatesPage() {
         </div>
       ) : (
         <div className="mt-6">
-          <CandidateSearch />
+          <CandidateSearch jobs={jobs} />
         </div>
       )}
     </main>

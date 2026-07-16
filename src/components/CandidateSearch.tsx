@@ -13,14 +13,17 @@ type Result = {
   commodities: string[];
   siteExperience: string[];
   certifications: { name: string }[];
+  matchScore?: number;
+  matchReasons?: string[];
 };
 
 function pretty(v: string) {
   return v.replaceAll("_", " ").toLowerCase();
 }
 
-export function CandidateSearch() {
+export function CandidateSearch(props: { jobs?: { id: string; title: string }[] }) {
   const [filters, setFilters] = useState({ q: "", country: "", commodity: "", site: "", fifo: "" });
+  const [jobId, setJobId] = useState("");
   const [results, setResults] = useState<Result[] | null>(null);
   const [page, setPage] = useState(1);
   const [busy, setBusy] = useState(false);
@@ -38,6 +41,7 @@ export function CandidateSearch() {
     if (filters.commodity) params.set("commodity", filters.commodity);
     if (filters.site) params.set("site", filters.site);
     if (filters.fifo) params.set("fifo", filters.fifo);
+    if (jobId) params.set("jobId", jobId);
     params.set("page", String(p));
     const res = await fetch(`/api/candidates/search?${params}`);
     const data = await res.json().catch(() => ({}));
@@ -90,7 +94,20 @@ export function CandidateSearch() {
           <option value="RESIDENTIAL">Residential</option>
           <option value="FLEXIBLE">Flexible</option>
         </select>
-        <button className="btn-primary sm:col-span-5" disabled={busy}>
+        {props.jobs && props.jobs.length > 0 && (
+          <select
+            className="field sm:col-span-3"
+            value={jobId}
+            onChange={(e) => setJobId(e.target.value)}
+            aria-label="Rank candidates against one of your job ads"
+          >
+            <option value="">No ranking — newest first</option>
+            {props.jobs.map((j) => (
+              <option key={j.id} value={j.id}>Rank against: {j.title}</option>
+            ))}
+          </select>
+        )}
+        <button className={`btn-primary ${props.jobs && props.jobs.length > 0 ? "sm:col-span-2" : "sm:col-span-5"}`} disabled={busy}>
           {busy ? "Searching…" : "Search candidates"}
         </button>
       </form>
@@ -113,7 +130,15 @@ export function CandidateSearch() {
                       <p className="font-semibold">
                         {r.firstName}
                         {r.yearsExperience != null && <span className="text-ink/50"> · {r.yearsExperience} yrs</span>}
+                        {r.matchScore !== undefined && (
+                          <span className={`tag ml-2 ${r.matchScore >= 60 ? "bg-patina/15 text-patina" : r.matchScore >= 30 ? "bg-oregold/20" : "bg-ink/5"}`}>
+                            {r.matchScore}% match
+                          </span>
+                        )}
                       </p>
+                      {r.matchReasons && r.matchReasons.length > 0 && (
+                        <p className="text-xs text-patina">{r.matchReasons.join(" · ")}</p>
+                      )}
                       {r.headline && <p className="text-sm text-ink/70">{r.headline}</p>}
                       <p className="mt-1 text-xs text-ink/50">
                         {[r.countryCode, r.region].filter(Boolean).join(" · ")}
