@@ -27,6 +27,11 @@ model User {
   // Moderation: suspension blocks login without triggering erasure.
   suspendedAt     DateTime?
   suspendedReason String?
+  // Email verification: sign-in is blocked until verified. Existing accounts
+  // are backfilled as verified at migration time.
+  emailVerifiedAt      DateTime?
+  verifyTokenHash      String?   @unique
+  verifyTokenExpiresAt DateTime?
 
   candidate    CandidateProfile?
   company      Company?          @relation("CompanyOwner")

@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 
 export function RegisterForm({ defaultRole }: { defaultRole: "CANDIDATE" | "EMPLOYER" }) {
   const [role, setRole] = useState<"CANDIDATE" | "EMPLOYER">(defaultRole);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -34,11 +34,24 @@ export function RegisterForm({ defaultRole }: { defaultRole: "CANDIDATE" | "EMPL
       setBusy(false);
       return;
     }
-    await signIn("credentials", {
-      email: payload.email,
-      password: payload.password,
-      callbackUrl: role === "EMPLOYER" ? "/dashboard/employer" : "/dashboard/candidate/profile",
-    });
+    setBusy(false);
+    setRegisteredEmail(payload.email);
+  }
+
+  if (registeredEmail) {
+    return (
+      <div className="card mt-6 text-center">
+        <p className="font-display text-2xl uppercase tracking-wide">Check your inbox</p>
+        <p className="mt-2 text-sm text-ink/70">
+          We&rsquo;ve sent a verification link to <span className="font-semibold">{registeredEmail}</span>.
+          Click it to activate your account, then sign in.
+        </p>
+        <p className="mt-3 text-xs text-ink/50">
+          Nothing arriving? Check spam, or use &ldquo;Resend verification email&rdquo; on the{" "}
+          <a href="/login" className="underline">sign-in page</a>.
+        </p>
+      </div>
+    );
   }
 
   return (

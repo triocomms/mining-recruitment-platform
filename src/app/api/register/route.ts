@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { makeSlug } from "@/lib/utils";
+import { sendVerificationEmail } from "@/lib/verification";
 
 const schema = z.object({
   role: z.enum(["CANDIDATE", "EMPLOYER"]), // ADMIN is never self-service
@@ -72,5 +73,8 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json({ id: user.id }, { status: 201 });
+  // Account is inactive until the email is verified.
+  await sendVerificationEmail({ id: user.id, email: user.email, role: user.role });
+
+  return NextResponse.json({ id: user.id, verifyEmailSent: true }, { status: 201 });
 }

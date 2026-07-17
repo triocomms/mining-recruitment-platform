@@ -29,6 +29,8 @@ export const authOptions: NextAuthOptions = {
         if (user.suspendedAt) throw new Error("SUSPENDED");
         const ok = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!ok) return null;
+        // Email must be confirmed before first sign-in.
+        if (!user.emailVerifiedAt) throw new Error("UNVERIFIED");
         return { id: user.id, email: user.email, role: user.role } as any;
       },
     }),
