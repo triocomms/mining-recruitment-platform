@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { JobCard } from "@/components/JobCard";
 import { HomeWorldMap } from "@/components/HomeWorldMap";
+import { FeaturedEmployerAd } from "@/components/FeaturedEmployerAd";
 
 export const revalidate = 300;
 
@@ -52,6 +53,8 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+
+      <FeaturedEmployerAd />
 
       <HomeWorldMap counts={jobsByCountry} />
 
