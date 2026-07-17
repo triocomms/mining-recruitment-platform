@@ -30,7 +30,8 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-12">
-      <section className="pt-6 sm:pt-10">
+      <section className="flex items-start justify-between gap-8 pt-6 sm:pt-10">
+        <div className="min-w-0">
         <p className="font-display text-sm font-semibold uppercase tracking-[0.2em] text-oxide">
           Mining · Resources · Energy
         </p>
@@ -52,9 +53,10 @@ export default async function HomePage() {
             <Link key={t} href={`/jobs?q=${encodeURIComponent(t)}`} className="tag hover:bg-ink/10">{t}</Link>
           ))}
         </div>
-      </section>
+        </div>
 
-      <FeaturedEmployerAd />
+        <FeaturedEmployerAd />
+      </section>
 
       <HomeWorldMap counts={jobsByCountry} />
 
