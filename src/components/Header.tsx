@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { SignOutButton } from "./SignOutButton";
 
 export async function Header() {
   const session = await auth();
@@ -22,7 +23,10 @@ export async function Header() {
           <Link href="/news" className="hidden rounded px-2 py-1 hover:text-hivis sm:block">News</Link>
           <Link href="/pricing" className="hidden rounded px-2 py-1 hover:text-hivis sm:block">Pricing</Link>
           {user ? (
-            <Link href={dashboardHref} className="btn-primary !px-3 !py-1.5">Dashboard</Link>
+            <>
+              <SignOutButton />
+              <Link href={dashboardHref} className="btn-primary !px-3 !py-1.5">Dashboard</Link>
+            </>
           ) : (
             <>
               <Link href="/login" className="rounded px-2 py-1 hover:text-hivis">Sign in</Link>
