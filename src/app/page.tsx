@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { JobCard } from "@/components/JobCard";
+import { HomeWorldMap } from "@/components/HomeWorldMap";
 
 export const revalidate = 300;
 
 export default async function HomePage() {
-  const [jobs, news, jobCount] = await Promise.all([
+  const [jobs, news, jobCount, countryCounts] = await Promise.all([
     prisma.job.findMany({
       where: { status: "PUBLISHED" },
       include: { company: { select: { name: true, slug: true, verificationStatus: true } } },
@@ -19,7 +20,12 @@ export default async function HomePage() {
       include: { company: { select: { name: true } } },
     }),
     prisma.job.count({ where: { status: "PUBLISHED" } }),
+    prisma.job.groupBy({ by: ["countryCode"], where: { status: "PUBLISHED" }, _count: true }),
   ]);
+
+  const jobsByCountry = Object.fromEntries(
+    countryCounts.map((c) => [c.countryCode, c._count])
+  );
 
   return (
     <div className="space-y-12">
@@ -46,6 +52,8 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+
+      <HomeWorldMap counts={jobsByCountry} />
 
       <section>
         <div className="mb-4 flex items-end justify-between">
