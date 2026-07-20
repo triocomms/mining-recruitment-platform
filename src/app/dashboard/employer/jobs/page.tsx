@@ -6,6 +6,7 @@ import { getJobQuota } from "@/lib/quota";
 import { timeAgo } from "@/lib/utils";
 import { JobPostForm } from "@/components/JobPostForm";
 import { CsvImportForm } from "@/components/CsvImportForm";
+import { JobFeedManager } from "@/components/JobFeedManager";
 
 export default async function EmployerJobsPage() {
   const session = await auth();
@@ -23,6 +24,10 @@ export default async function EmployerJobsPage() {
   if (!company) redirect("/login");
 
   const quota = await getJobQuota(company.id);
+  const feeds = await prisma.jobFeed.findMany({
+    where: { companyId: company.id },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
@@ -52,6 +57,11 @@ export default async function EmployerJobsPage() {
           <h2 className="font-display text-xl uppercase tracking-wide">Bulk import (CSV)</h2>
           <div className="mt-3">
             <CsvImportForm />
+          </div>
+
+          <h2 className="mt-8 font-display text-xl uppercase tracking-wide">RSS feed sync</h2>
+          <div className="mt-3">
+            <JobFeedManager initialFeeds={JSON.parse(JSON.stringify(feeds))} />
           </div>
 
           <h2 className="mt-8 font-display text-xl uppercase tracking-wide">

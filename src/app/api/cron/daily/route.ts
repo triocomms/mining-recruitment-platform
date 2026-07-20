@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { expireJobs, purgeDeletedUsers, dailyRollup } from "@/lib/cron";
+import { expireJobs, purgeDeletedUsers, dailyRollup, syncJobFeeds } from "@/lib/cron";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic"; // never execute at build time

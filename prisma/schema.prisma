@@ -212,8 +212,33 @@ model Company {
   threads        MessageThread[]
   overages       OveragePurchase[]
   reviews        CompanyReview[]
+  jobFeeds       JobFeed[]
 
   @@index([verificationStatus])
+}
+
+// ─────────────────────────────────────────────── RSS / XML job feeds
+
+enum JobFeedStatus {
+  ACTIVE
+  PAUSED
+  ERROR
+}
+
+model JobFeed {
+  id            String        @id @default(cuid())
+  companyId     String
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  url           String
+  label         String? // e.g. "BHP Careers — Australia"
+  status        JobFeedStatus @default(ACTIVE)
+  lastFetchedAt DateTime?
+  lastSuccessAt DateTime?
+  lastError     String?
+  lastSummary   Json? // { fetched, created, updated, drafted, skippedDuplicates, expired }
+  createdAt     DateTime      @default(now())
+
+  @@index([status])
 }
 
 // ─────────────────────────────────────────────── Jobs

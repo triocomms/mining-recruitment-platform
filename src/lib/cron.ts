@@ -61,3 +61,12 @@ export function dailyRollup() {
     return "rolled up yesterday + today";
   });
 }
+
+/** Poll every ACTIVE (or previously-ERRORed, to retry) employer RSS feed. */
+export function syncJobFeeds() {
+  return record("sync-job-feeds", async () => {
+    const { syncAllActiveFeeds } = await import("./feed-import");
+    const { feedsProcessed, errors } = await syncAllActiveFeeds();
+    return `${feedsProcessed} feed(s) synced, ${errors} error(s)`;
+  });
+}
