@@ -168,19 +168,37 @@ function splitTitle(rawTitle: string): { headline: string; city: string | null }
   return { headline, city };
 }
 
-function stripHtml(html: string): string {
-  return html
+function decodeHtmlEntities(input: string): string {
+  // Some feeds (BHP among them) wrap description HTML in CDATA but the tags
+  // themselves are *also* entity-escaped (e.g. "&lt;p style=&quot;...&quot;&gt;"),
+  // so what we receive isn't real markup yet — it's markup-as-text. Decode
+  // repeatedly (bounded) in case a feed double-escapes on top of that.
+  let s = input;
+  for (let i = 0; i < 3; i++) {
+    const next = s
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;|&apos;/g, "'")
+      .replace(/&nbsp;/g, " ");
+    if (next === s) break;
+    s = next;
+  }
+  return s;
+}
+
+export function stripHtml(html: string): string {
+  // Decode entities BEFORE stripping tags — otherwise escaped markup like
+  // "&lt;p&gt;" never matches the tag regexes below, and un-decodes into
+  // real (but unstripped) HTML afterward. See decodeHtmlEntities above.
+  const decoded = decodeHtmlEntities(html);
+  return decoded
     // block-level tags become paragraph breaks before we strip everything else
     .replace(/<\/(p|div|li|h[1-6]|br)>/gi, "\n")
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<li[^>]*>/gi, "• ")
     .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
     .replace(/[ \t]+/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .split("\n")
