@@ -4,6 +4,13 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAdminAction } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
+import type { Job, Company, Subscription } from "@prisma/client";
+
+// Bulk approve loops sequentially (DB update + audit log + email per job),
+// same shape as the daily cron's per-feed loop — give it the same headroom.
+export const maxDuration = 60;
+
+const MAX_BULK_APPROVE = 200;
 
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("APPROVE"), jobId: z.string() }),
@@ -12,7 +19,35 @@ const schema = z.discriminatedUnion("action", [
     jobId: z.string(),
     reason: z.string().trim().min(3, "A rejection reason is required").max(1000),
   }),
+  z.object({
+    action: z.literal("BULK_APPROVE"),
+    jobIds: z.array(z.string()).min(1, "Select at least one job").max(MAX_BULK_APPROVE),
+  }),
 ]);
+
+type JobWithCompany = Job & { company: Company & { subscription: Subscription | null; owner: { email: string } } };
+
+/** Publish a single PENDING_REVIEW job. Caller must have already confirmed status. */
+async function approveJob(job: JobWithCompany, adminId: string) {
+  const isGold = job.company.subscription?.status === "ACTIVE" && job.company.subscription.tier === "GOLD";
+  await prisma.job.update({
+    where: { id: job.id },
+    data: {
+      status: "PUBLISHED",
+      reviewNotes: null,
+      isPriority: isGold,
+      publishedAt: new Date(),
+      expiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000),
+    },
+  });
+  await logAdminAction(adminId, "JOB_APPROVE", "JOB", job.id);
+  await sendEmail({
+    to: job.company.owner.email,
+    subject: `Your job ad "${job.title}" is now live`,
+    body: `Your ad "${job.title}" passed review and is now published on Orebridge. It will run for 30 days.`,
+    template: "JOB_APPROVED",
+  });
+}
 
 /** Admin review of PENDING_REVIEW job ads: approve → publish, reject → back to draft with a reason. */
 export async function POST(req: NextRequest) {
@@ -25,6 +60,28 @@ export async function POST(req: NextRequest) {
   }
   const d = parsed.data;
 
+  if (d.action === "BULK_APPROVE") {
+    // Re-check status per job rather than trusting the client's selection —
+    // the queue can move between the admin loading the page and submitting
+    // (another admin acting first, employer editing back to draft, etc).
+    const jobs = await prisma.job.findMany({
+      where: { id: { in: d.jobIds }, status: "PENDING_REVIEW" },
+      include: { company: { include: { subscription: true, owner: { select: { email: true } } } } },
+    });
+
+    let approved = 0;
+    for (const job of jobs) {
+      await approveJob(job, user.id);
+      approved++;
+    }
+
+    return NextResponse.json({
+      ok: true,
+      approved,
+      skipped: d.jobIds.length - approved, // already handled, deleted, or raced by the time we looked
+    });
+  }
+
   const job = await prisma.job.findUnique({
     where: { id: d.jobId },
     include: { company: { include: { subscription: true, owner: { select: { email: true } } } } },
@@ -35,25 +92,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (d.action === "APPROVE") {
-    const isGold =
-      job.company.subscription?.status === "ACTIVE" && job.company.subscription.tier === "GOLD";
-    await prisma.job.update({
-      where: { id: job.id },
-      data: {
-        status: "PUBLISHED",
-        reviewNotes: null,
-        isPriority: isGold,
-        publishedAt: new Date(),
-        expiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000),
-      },
-    });
-    await logAdminAction(user.id, "JOB_APPROVE", "JOB", job.id);
-    await sendEmail({
-      to: job.company.owner.email,
-      subject: `Your job ad "${job.title}" is now live`,
-      body: `Your ad "${job.title}" passed review and is now published on Orebridge. It will run for 30 days.`,
-      template: "JOB_APPROVED",
-    });
+    await approveJob(job, user.id);
   } else {
     // Rejected ads return to DRAFT with the reason surfaced to the employer.
     // Quota was consumed at submission and is intentionally not refunded.

@@ -143,6 +143,124 @@ export function AdminJobReviewActions(props: { jobId: string }) {
   );
 }
 
+type PendingReviewJob = {
+  id: string;
+  title: string;
+  companyName: string;
+  companyVerification: string;
+  countryCode: string;
+  region: string | null;
+  moderationFlags: string[];
+  description: string;
+  submittedAgo: string;
+};
+
+/** Job review queue with multi-select + "Approve N selected", plus the existing
+ *  per-row approve/reject for one-at-a-time decisions. */
+export function AdminJobReviewQueue(props: { jobs: PendingReviewJob[] }) {
+  const router = useRouter();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { jobs } = props;
+  const allSelected = jobs.length > 0 && selected.size === jobs.length;
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(jobs.map((j) => j.id)));
+  }
+
+  async function bulkApprove() {
+    if (selected.size === 0) return;
+    const count = selected.size;
+    if (!window.confirm(`Publish ${count} job ad${count === 1 ? "" : "s"}? This can't be undone in bulk.`)) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const res = await fetch("/api/admin/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "BULK_APPROVE", jobIds: Array.from(selected) }),
+    });
+    setBusy(false);
+    if (res.ok) {
+      setSelected(new Set());
+      router.refresh();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Bulk approve failed");
+    }
+  }
+
+  if (jobs.length === 0) {
+    return <p className="card mt-3 text-sm text-ink/60">Queue is clear.</p>;
+  }
+
+  return (
+    <div className="mt-3">
+      <div className="card flex flex-wrap items-center justify-between gap-3 bg-sand/40">
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+          {selected.size > 0 ? `${selected.size} selected` : "Select all"}
+        </label>
+        <button className="btn-primary text-sm" disabled={selected.size === 0 || busy} onClick={bulkApprove}>
+          {busy ? "Approving…" : selected.size > 0 ? `Approve ${selected.size} selected` : "Approve selected"}
+        </button>
+      </div>
+      {error && <p className="mt-1 text-xs text-oxide">{error}</p>}
+
+      <ul className="mt-3 space-y-3">
+        {jobs.map((j) => (
+          <li key={j.id} className="card">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex min-w-0 flex-1 gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-1 shrink-0"
+                  checked={selected.has(j.id)}
+                  onChange={() => toggle(j.id)}
+                  aria-label={`Select ${j.title}`}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">{j.title}</p>
+                  <p className="text-xs text-ink/60">
+                    {j.companyName} · {j.companyVerification.toLowerCase()} · {j.countryCode}
+                    {j.region ? ` · ${j.region}` : ""} · submitted {j.submittedAgo}
+                  </p>
+                  {j.moderationFlags.length > 0 && (
+                    <p className="mt-1 text-xs">
+                      {j.moderationFlags.map((f) => (
+                        <span key={f} className="tag mr-1 bg-oxide/15 text-oxide">
+                          {f.replaceAll("_", " ").toLowerCase()}
+                        </span>
+                      ))}
+                    </p>
+                  )}
+                  <details className="mt-2 text-sm">
+                    <summary className="cursor-pointer text-ink/60">Full description</summary>
+                    <p className="mt-1 whitespace-pre-wrap text-ink/80">{j.description}</p>
+                  </details>
+                </div>
+              </div>
+              <AdminJobReviewActions jobId={j.id} />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function AdminSuspendForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");

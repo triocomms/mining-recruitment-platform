@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { timeAgo } from "@/lib/utils";
-import { AdminVerifyActions, AdminCurateActions, AdminJobReviewActions, AdminSuspendForm, AdminUnsuspendButton, AdminReportActions, AdminRefundButton } from "@/components/AdminActions";
+import { AdminVerifyActions, AdminCurateActions, AdminJobReviewQueue, AdminSuspendForm, AdminUnsuspendButton, AdminReportActions, AdminRefundButton } from "@/components/AdminActions";
 
 export default async function AdminDashboard() {
   const session = await auth();
@@ -127,40 +127,19 @@ export default async function AdminDashboard() {
         <h2 className="font-display text-xl uppercase tracking-wide">
           Job ad review queue ({pendingJobs.length})
         </h2>
-        {pendingJobs.length === 0 ? (
-          <p className="card mt-3 text-sm text-ink/60">Queue is clear.</p>
-        ) : (
-          <ul className="mt-3 space-y-3">
-            {pendingJobs.map((j) => (
-              <li key={j.id} className="card">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{j.title}</p>
-                    <p className="text-xs text-ink/60">
-                      {j.company.name} · {j.company.verificationStatus.toLowerCase()} ·{" "}
-                      {j.countryCode}
-                      {j.region ? ` · ${j.region}` : ""} · submitted {timeAgo(j.createdAt)}
-                    </p>
-                    {j.moderationFlags.length > 0 && (
-                      <p className="mt-1 text-xs">
-                        {j.moderationFlags.map((f) => (
-                          <span key={f} className="tag mr-1 bg-oxide/15 text-oxide">
-                            {f.replaceAll("_", " ").toLowerCase()}
-                          </span>
-                        ))}
-                      </p>
-                    )}
-                    <details className="mt-2 text-sm">
-                      <summary className="cursor-pointer text-ink/60">Full description</summary>
-                      <p className="mt-1 whitespace-pre-wrap text-ink/80">{j.description}</p>
-                    </details>
-                  </div>
-                  <AdminJobReviewActions jobId={j.id} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+        <AdminJobReviewQueue
+          jobs={pendingJobs.map((j) => ({
+            id: j.id,
+            title: j.title,
+            companyName: j.company.name,
+            companyVerification: j.company.verificationStatus,
+            countryCode: j.countryCode,
+            region: j.region,
+            moderationFlags: j.moderationFlags,
+            description: j.description,
+            submittedAgo: timeAgo(j.createdAt),
+          }))}
+        />
       </section>
 
       <section className="mt-10">
