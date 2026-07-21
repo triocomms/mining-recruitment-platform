@@ -41,13 +41,16 @@ export default async function CandidateProfilePage() {
             yearsExperience: profile.yearsExperience,
             fifoPreference: profile.fifoPreference ?? "",
             willingToRelocate: profile.willingToRelocate,
+            availableFrom: profile.availableFrom ? profile.availableFrom.toISOString().slice(0, 10) : "",
             siteExperience: profile.siteExperience,
             commodities: profile.commodities,
             visibility: profile.visibility,
             certifications: profile.certifications.map((c) => ({
               name: c.name,
               issuer: c.issuer ?? "",
+              referenceNo: c.referenceNo ?? "",
               expiresAt: c.expiresAt ? c.expiresAt.toISOString().slice(0, 10) : "",
+              documentKey: c.documentKey,
             })),
           }}
         />

@@ -16,7 +16,7 @@ export type MatchInput = {
   candidate: Pick<
     CandidateProfile,
     "commodities" | "siteExperience" | "fifoPreference" | "yearsExperience" | "countryCode" | "region"
-  > & { certifications: Pick<Certification, "name">[] };
+  > & { certifications: Pick<Certification, "name" | "expiresAt">[] };
   job: Pick<
     Job,
     "commodity" | "siteType" | "fifo" | "rosterPattern" | "title" | "description" | "countryCode" | "region"
@@ -51,10 +51,15 @@ export function scoreMatch({ candidate, job }: MatchInput): MatchResult {
   }
 
   // Certifications / tickets (20): overlap between cert names and job text.
-  if (candidate.certifications.length > 0) {
+  // An expired ticket isn't a real qualification match, so it's excluded —
+  // same rule ProfileForm already uses to visually flag expired certs.
+  const validCerts = candidate.certifications.filter(
+    (c) => !c.expiresAt || c.expiresAt.getTime() >= Date.now()
+  );
+  if (validCerts.length > 0) {
     possible += 20;
     const jobText = `${job.title} ${job.description}`.toLowerCase();
-    const hits = candidate.certifications.filter((c) => {
+    const hits = validCerts.filter((c) => {
       const name = c.name.toLowerCase().trim();
       return name.length >= 3 && jobText.includes(name);
     });

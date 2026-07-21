@@ -25,7 +25,7 @@ export default async function CandidateDashboard() {
   const profile = await prisma.candidateProfile.findUnique({
     where: { userId: session.user.id },
     include: {
-      certifications: { select: { name: true } },
+      certifications: { select: { name: true, expiresAt: true } },
       applications: {
         orderBy: { createdAt: "desc" },
         take: 10,

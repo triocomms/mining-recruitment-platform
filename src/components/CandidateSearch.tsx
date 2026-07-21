@@ -151,6 +151,7 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {r.commodities.slice(0, 5).map((c) => <span key={c} className="tag">{pretty(c)}</span>)}
+                    {r.siteExperience.slice(0, 5).map((s) => <span key={s} className="tag bg-ink/5">{pretty(s)}</span>)}
                     {r.certifications.map((c) => <span key={c.name} className="tag bg-patina/10">{c.name}</span>)}
                   </div>
                 </li>

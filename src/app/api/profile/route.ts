@@ -22,8 +22,17 @@ const schema = z.object({
   photoKey: z.string().nullable().optional(),
   resumeKey: z.string().nullable().optional(),
   coverLetterKey: z.string().nullable().optional(),
+  availableFrom: z.string().datetime().nullable().optional(),
   certifications: z
-    .array(z.object({ name: z.string().trim().min(1).max(120), issuer: z.string().trim().max(120).optional(), expiresAt: z.string().datetime().optional() }))
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(120),
+        issuer: z.string().trim().max(120).optional(),
+        referenceNo: z.string().trim().max(80).optional(),
+        expiresAt: z.string().datetime().optional(),
+        documentKey: z.string().nullable().optional(),
+      })
+    )
     .max(40)
     .optional(),
 });
@@ -34,7 +43,7 @@ export async function PATCH(req: NextRequest) {
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
-  const { certifications, visibility, ...fields } = parsed.data;
+  const { certifications, visibility, availableFrom, ...fields } = parsed.data;
 
   const candidate = await prisma.candidateProfile.findUnique({ where: { userId: user.id } });
   if (!candidate) return NextResponse.json({ error: "No profile" }, { status: 400 });
@@ -57,6 +66,7 @@ export async function PATCH(req: NextRequest) {
     data: {
       ...fields,
       ...(visibility ? { visibility } : {}),
+      ...(availableFrom !== undefined ? { availableFrom: availableFrom ? new Date(availableFrom) : null } : {}),
       ...(certifications
         ? {
             certifications: {
@@ -64,7 +74,9 @@ export async function PATCH(req: NextRequest) {
               create: certifications.map((c) => ({
                 name: c.name,
                 issuer: c.issuer,
+                referenceNo: c.referenceNo,
                 expiresAt: c.expiresAt ? new Date(c.expiresAt) : null,
+                documentKey: c.documentKey,
               })),
             },
           }

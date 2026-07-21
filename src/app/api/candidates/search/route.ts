@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
       fifoPreference: true,
       commodities: true,
       siteExperience: true,
-      certifications: { select: { name: true }, take: 6 },
+      certifications: { select: { name: true, expiresAt: true }, take: 6 },
     },
     orderBy: { updatedAt: "desc" },
     // With a match job we score a wider pool server-side, then rank.

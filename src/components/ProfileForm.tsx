@@ -30,7 +30,9 @@ const COMMODITY_OPTIONS = [
   ["OTHER", "Other"],
 ] as const;
 
-type Cert = { name: string; issuer: string; expiresAt: string }; // expiresAt: "YYYY-MM-DD" or ""
+// expiresAt/availableFrom: "YYYY-MM-DD" or ""; documentKey: S3 key once an
+// upload completes, or null/empty if no scan has been attached.
+type Cert = { name: string; issuer: string; referenceNo: string; expiresAt: string; documentKey: string | null };
 
 export function ProfileForm(props: {
   initial: {
@@ -45,6 +47,7 @@ export function ProfileForm(props: {
     yearsExperience: number | null;
     fifoPreference: string;
     willingToRelocate: boolean;
+    availableFrom: string;
     siteExperience: string[];
     commodities: string[];
     visibility: string;
@@ -55,9 +58,37 @@ export function ProfileForm(props: {
   const [f, setF] = useState(props.initial);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [uploadingCert, setUploadingCert] = useState<number | null>(null);
 
   function toggle(list: string[], value: string) {
     return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+  }
+
+  // Certification docs are attached per-row before the form is saved — the
+  // upload itself goes straight to S3 via presign (never touches the app
+  // server), and the returned key just sits in local state until "Save
+  // profile" persists the whole certifications array in one go.
+  async function uploadCertDoc(i: number, file: File) {
+    setUploadingCert(i);
+    try {
+      const presign = await fetch("/api/uploads/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "certification", contentType: file.type }),
+      });
+      const { key, url, maxBytes, error } = await presign.json();
+      if (!presign.ok) throw new Error(error);
+      if (file.size > maxBytes) throw new Error(`File must be under ${Math.round(maxBytes / 1024 / 1024)} MB`);
+      const put = await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      if (!put.ok) throw new Error("Upload failed — try again");
+      const next = [...f.certifications];
+      next[i] = { ...next[i], documentKey: key };
+      setF((prev) => ({ ...prev, certifications: next }));
+    } catch (err: any) {
+      setMsg({ ok: false, text: err.message ?? "Upload failed" });
+    } finally {
+      setUploadingCert(null);
+    }
   }
 
   async function save(e: React.FormEvent) {
@@ -79,6 +110,7 @@ export function ProfileForm(props: {
         yearsExperience: f.yearsExperience,
         fifoPreference: f.fifoPreference || null,
         willingToRelocate: f.willingToRelocate,
+        availableFrom: f.availableFrom ? new Date(`${f.availableFrom}T00:00:00.000Z`).toISOString() : null,
         siteExperience: f.siteExperience,
         commodities: f.commodities,
         visibility: f.visibility,
@@ -87,9 +119,11 @@ export function ProfileForm(props: {
           .map((c) => ({
             name: c.name.trim(),
             issuer: c.issuer.trim() || undefined,
+            referenceNo: c.referenceNo.trim() || undefined,
             // The date input gives "YYYY-MM-DD"; the API expects a full ISO
             // datetime string (z.string().datetime()).
             expiresAt: c.expiresAt ? new Date(`${c.expiresAt}T00:00:00.000Z`).toISOString() : undefined,
+            documentKey: c.documentKey || null,
           })),
       }),
     });
@@ -214,6 +248,18 @@ export function ProfileForm(props: {
         </label>
       </div>
 
+      <div>
+        <label className="label" htmlFor="availableFrom">Available from</label>
+        <input
+          id="availableFrom"
+          type="date"
+          className="field sm:w-56"
+          value={f.availableFrom}
+          onChange={(e) => setF({ ...f, availableFrom: e.target.value })}
+        />
+        <p className="mt-1 text-xs text-ink/50">Leave blank if you're available immediately.</p>
+      </div>
+
       <fieldset>
         <legend className="label">Site experience</legend>
         <div className="flex flex-wrap gap-2">
@@ -252,56 +298,99 @@ export function ProfileForm(props: {
         {f.certifications.map((c, i) => {
           const expired = c.expiresAt && c.expiresAt < new Date().toISOString().slice(0, 10);
           return (
-            <div key={i} className="mb-2 flex flex-wrap gap-2 sm:flex-nowrap">
-              <input
-                className="field flex-1 basis-full sm:basis-auto"
-                placeholder="Ticket / cert name"
-                value={c.name}
-                onChange={(e) => {
-                  const next = [...f.certifications];
-                  next[i] = { ...next[i], name: e.target.value };
-                  setF({ ...f, certifications: next });
-                }}
-              />
-              <input
-                className="field flex-1 basis-full sm:basis-auto"
-                placeholder="Issuer (optional)"
-                value={c.issuer}
-                onChange={(e) => {
-                  const next = [...f.certifications];
-                  next[i] = { ...next[i], issuer: e.target.value };
-                  setF({ ...f, certifications: next });
-                }}
-              />
-              <div className="flex flex-1 basis-full items-center gap-1 sm:basis-auto sm:flex-none">
+            <div key={i} className="mb-3 rounded-md border border-ink/10 p-2">
+              <div className="flex flex-wrap gap-2 sm:flex-nowrap">
                 <input
-                  type="date"
-                  className={`field w-full sm:w-40 ${expired ? "border-oxide text-oxide" : ""}`}
-                  aria-label="Expiry date (optional)"
-                  title="Expiry date (optional) — leave blank if it doesn't expire"
-                  value={c.expiresAt}
+                  className="field flex-1 basis-full sm:basis-auto"
+                  placeholder="Ticket / cert name"
+                  value={c.name}
                   onChange={(e) => {
                     const next = [...f.certifications];
-                    next[i] = { ...next[i], expiresAt: e.target.value };
+                    next[i] = { ...next[i], name: e.target.value };
                     setF({ ...f, certifications: next });
                   }}
                 />
+                <input
+                  className="field flex-1 basis-full sm:basis-auto"
+                  placeholder="Issuer (optional)"
+                  value={c.issuer}
+                  onChange={(e) => {
+                    const next = [...f.certifications];
+                    next[i] = { ...next[i], issuer: e.target.value };
+                    setF({ ...f, certifications: next });
+                  }}
+                />
+                <div className="flex flex-1 basis-full items-center gap-1 sm:basis-auto sm:flex-none">
+                  <input
+                    type="date"
+                    className={`field w-full sm:w-40 ${expired ? "border-oxide text-oxide" : ""}`}
+                    aria-label="Expiry date (optional)"
+                    title="Expiry date (optional) — leave blank if it doesn't expire"
+                    value={c.expiresAt}
+                    onChange={(e) => {
+                      const next = [...f.certifications];
+                      next[i] = { ...next[i], expiresAt: e.target.value };
+                      setF({ ...f, certifications: next });
+                    }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="btn-ghost px-3"
+                  aria-label="Remove certification"
+                  onClick={() => setF({ ...f, certifications: f.certifications.filter((_, j) => j !== i) })}
+                >
+                  ✕
+                </button>
               </div>
-              <button
-                type="button"
-                className="btn-ghost px-3"
-                aria-label="Remove certification"
-                onClick={() => setF({ ...f, certifications: f.certifications.filter((_, j) => j !== i) })}
-              >
-                ✕
-              </button>
+              <div className="mt-2 flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                <input
+                  className="field flex-1 basis-full sm:basis-auto"
+                  placeholder="Reference / licence number (optional)"
+                  value={c.referenceNo}
+                  onChange={(e) => {
+                    const next = [...f.certifications];
+                    next[i] = { ...next[i], referenceNo: e.target.value };
+                    setF({ ...f, certifications: next });
+                  }}
+                />
+                <label className="btn-ghost shrink-0 cursor-pointer text-sm">
+                  <input
+                    type="file"
+                    accept=".pdf,image/*"
+                    className="sr-only"
+                    disabled={uploadingCert === i}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      if (file) uploadCertDoc(i, file);
+                    }}
+                  />
+                  {uploadingCert === i ? "Uploading…" : c.documentKey ? "Replace scan" : "Attach scan"}
+                </label>
+                {c.documentKey && (
+                  <a
+                    href={`/api/files?key=${encodeURIComponent(c.documentKey)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-patina underline"
+                  >
+                    View
+                  </a>
+                )}
+              </div>
             </div>
           );
         })}
         <button
           type="button"
           className="btn-ghost"
-          onClick={() => setF({ ...f, certifications: [...f.certifications, { name: "", issuer: "", expiresAt: "" }] })}
+          onClick={() =>
+            setF({
+              ...f,
+              certifications: [...f.certifications, { name: "", issuer: "", referenceNo: "", expiresAt: "", documentKey: null }],
+            })
+          }
         >
           + Add ticket
         </button>
