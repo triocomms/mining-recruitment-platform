@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { formatSalary, formatLocation, isUnresolvedCountry } from "@/lib/utils";
+import { formatSalary, formatLocation, isUnresolvedCountry, commodityToSlug } from "@/lib/utils";
 import { ApplyPanel } from "@/components/ApplyPanel";
 import { ReportJobButton } from "@/components/ReportJobButton";
 
@@ -114,6 +114,13 @@ export default async function JobPage({ params }: { params: { slug: string } }) 
           <span className="tag">{pretty(job.employmentType)}</span>
           {salary && <span className="tag !bg-patina/10 !text-patina">{salary}</span>}
         </div>
+        {job.commodity && (
+          <p className="mt-2 text-xs text-ink/50">
+            <Link href={`/salaries/${commodityToSlug(job.commodity)}`} className="underline">
+              See typical {pretty(job.commodity)?.toLowerCase()} pay ranges →
+            </Link>
+          </p>
+        )}
         <div className="strata mt-6 max-w-[160px]" aria-hidden="true" />
         <div className="prose-sm mt-6 max-w-none whitespace-pre-wrap text-ink/90">{job.description}</div>
       </div>

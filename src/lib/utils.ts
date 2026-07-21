@@ -45,6 +45,21 @@ export function formatSalary(
   return `${range}${per}`;
 }
 
+/** Commodity enum value <-> URL slug, e.g. "IRON_ORE" <-> "iron-ore". Used by
+ * the /salaries benchmark pages. */
+export function commodityToSlug(commodity: string): string {
+  return commodity.toLowerCase().replace(/_/g, "-");
+}
+
+export function slugToCommodity(slug: string): string {
+  return slug.toUpperCase().replace(/-/g, "_");
+}
+
+/** Below this many salaried ads, a group's numbers are too thin to call a
+ * "typical" range — the /salaries pages show "not enough data" instead of a
+ * misleading average from one or two ads. */
+export const MIN_SALARY_SAMPLE_SIZE = 3;
+
 /**
  * Converts a YouTube/Vimeo watch link into an embeddable iframe src, or
  * returns null for anything else. Used both to validate a submitted
