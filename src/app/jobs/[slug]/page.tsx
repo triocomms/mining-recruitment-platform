@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { formatSalary, formatLocation, isUnresolvedCountry } from "@/lib/utils";
 import { ApplyPanel } from "@/components/ApplyPanel";
+import { ReportJobButton } from "@/components/ReportJobButton";
 
 /** schema.org/JobPosting structured data for Google Jobs indexing. */
 function jobPostingJsonLd(job: any) {
@@ -117,7 +118,7 @@ export default async function JobPage({ params }: { params: { slug: string } }) 
         <div className="prose-sm mt-6 max-w-none whitespace-pre-wrap text-ink/90">{job.description}</div>
       </div>
 
-      <aside className="lg:sticky lg:top-20 lg:self-start">
+      <aside className="lg:sticky lg:top-20 lg:self-start space-y-3">
         <ApplyPanel
           jobId={job.id}
           applyUrl={job.applyUrl}
@@ -126,6 +127,7 @@ export default async function JobPage({ params }: { params: { slug: string } }) 
           applied={applied}
           bookmarked={bookmarked}
         />
+        <ReportJobButton jobId={job.id} signedIn={Boolean(session?.user)} />
       </aside>
     </article>
   );
