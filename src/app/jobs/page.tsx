@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { JobCard } from "@/components/JobCard";
+import { SaveSearchButton } from "@/components/SaveSearchButton";
 import { isUnresolvedCountry } from "@/lib/utils";
 import { Commodity, SiteExperience, Prisma } from "@prisma/client";
 
@@ -81,6 +83,8 @@ export default async function JobsPage({
       : {}),
   };
 
+  const session = await auth();
+
   const [jobs, total, countries] = await Promise.all([
     prisma.job.findMany({
       where,
@@ -146,6 +150,17 @@ export default async function JobsPage({
           aren&rsquo;t converted, so mixing them can give odd results.
         </p>
       </form>
+
+      <SaveSearchButton
+        signedIn={session?.user.role === "CANDIDATE"}
+        filters={{
+          commodity: searchParams.commodity,
+          site: searchParams.site,
+          country: searchParams.country,
+          fifo: searchParams.fifo,
+          minSalary: searchParams.minSalary,
+        }}
+      />
 
       <div className="mt-4 grid gap-3">
         {jobs.map((job) => <JobCard key={job.id} job={job} />)}

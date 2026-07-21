@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { rollupDay } from "./analytics";
+import { sendEmail } from "./email";
 
 /** Days a soft-deleted account is retained before hard purge. */
 export const PURGE_GRACE_DAYS = 30;
@@ -68,5 +69,54 @@ export function syncJobFeeds() {
     const { syncAllActiveFeeds } = await import("./feed-import");
     const { feedsProcessed, errors } = await syncAllActiveFeeds();
     return `${feedsProcessed} feed(s) synced, ${errors} error(s)`;
+  });
+}
+
+/**
+ * Job alerts for saved searches: for each SavedSearch, find PUBLISHED jobs
+ * matching its filters posted since the last alert (or since it was created,
+ * if never alerted), email a digest if there are any, and advance
+ * lastNotifiedAt regardless — a saved search with zero new matches this run
+ * shouldn't get flooded once a bunch show up later than expected.
+ */
+export function sendSavedSearchAlerts() {
+  return record("saved-search-alerts", async () => {
+    const searches = await prisma.savedSearch.findMany({
+      include: { candidate: { select: { user: { select: { email: true } } } } },
+    });
+
+    let alerted = 0;
+    for (const s of searches) {
+      const since = s.lastNotifiedAt ?? s.createdAt;
+      const matches = await prisma.job.findMany({
+        where: {
+          status: "PUBLISHED",
+          publishedAt: { gt: since },
+          ...(s.commodity ? { commodity: s.commodity } : {}),
+          ...(s.siteType ? { siteType: s.siteType } : {}),
+          ...(s.countryCode ? { countryCode: s.countryCode } : {}),
+          ...(s.fifoOnly ? { fifo: true } : {}),
+          ...(s.minSalary
+            ? { OR: [{ salaryMax: { gte: s.minSalary } }, { salaryMax: null, salaryMin: { gte: s.minSalary } }] }
+            : {}),
+        },
+        orderBy: { publishedAt: "desc" },
+        take: 15,
+        include: { company: { select: { name: true } } },
+      });
+
+      if (matches.length > 0) {
+        const lines = matches.map((j) => `- ${j.title} — ${j.company.name}`).join("\n");
+        await sendEmail({
+          to: s.candidate.user.email,
+          subject: `${matches.length} new job${matches.length === 1 ? "" : "s"} matching "${s.label || "your saved search"}"`,
+          body: `New roles matching your saved search:\n\n${lines}\n\nView them: https://mining-recruitment-platform.vercel.app/jobs`,
+          template: "SAVED_SEARCH_ALERT",
+        });
+        alerted++;
+      }
+      await prisma.savedSearch.update({ where: { id: s.id }, data: { lastNotifiedAt: new Date() } });
+    }
+    return `${searches.length} saved search(es) checked, ${alerted} alert(s) sent`;
   });
 }

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { timeAgo } from "@/lib/utils";
 import { scoreMatch } from "@/lib/matching";
 import { JobCard } from "@/components/JobCard";
+import { DeleteSavedSearchButton } from "@/components/DeleteSavedSearchButton";
 import type { Prisma } from "@prisma/client";
 
 const STATUS_TONE: Record<string, string> = {
@@ -47,6 +48,7 @@ export default async function CandidateDashboard() {
           messages: { orderBy: { createdAt: "desc" }, take: 1 },
         },
       },
+      savedSearches: { orderBy: { createdAt: "desc" } },
     },
   });
   if (!profile) redirect("/login");
@@ -223,6 +225,47 @@ export default async function CandidateDashboard() {
                     </Link>
                   </li>
                 ))}
+              </ul>
+            )}
+          </div>
+
+          <div>
+            <h2 className="font-display text-xl uppercase tracking-wide">Saved searches</h2>
+            {profile.savedSearches.length === 0 ? (
+              <p className="card mt-3 text-sm text-ink/60">
+                No saved searches yet. Save a search from{" "}
+                <Link href="/jobs" className="underline">the jobs page</Link> to get emailed when new matches go live.
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {profile.savedSearches.map((s) => {
+                  const params = new URLSearchParams();
+                  if (s.commodity) params.set("commodity", s.commodity);
+                  if (s.siteType) params.set("site", s.siteType);
+                  if (s.countryCode) params.set("country", s.countryCode);
+                  if (s.fifoOnly) params.set("fifo", "1");
+                  if (s.minSalary != null) params.set("minSalary", String(s.minSalary));
+                  const summary = [
+                    s.commodity && s.commodity.toLowerCase().replace(/_/g, " "),
+                    s.siteType && s.siteType.toLowerCase().replace(/_/g, " "),
+                    s.countryCode,
+                    s.fifoOnly && "FIFO only",
+                    s.minSalary != null && `min $${s.minSalary.toLocaleString()}`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ");
+                  return (
+                    <li key={s.id} className="card text-sm">
+                      <div className="flex items-start justify-between gap-2">
+                        <Link href={`/jobs?${params}`} className="font-semibold hover:underline">
+                          {s.label || summary || "All jobs"}
+                        </Link>
+                        <DeleteSavedSearchButton id={s.id} />
+                      </div>
+                      {s.label && summary && <p className="mt-1 text-xs text-ink/60">{summary}</p>}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

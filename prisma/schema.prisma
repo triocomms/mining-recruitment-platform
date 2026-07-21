@@ -162,9 +162,29 @@ model CandidateProfile {
   threads           MessageThread[]
   promotions        PromotionListing[]
   companyReviews    CompanyReview[]
+  savedSearches     SavedSearch[]
 
   @@index([visibility])
   @@index([countryCode, region])
+}
+
+// Job alerts: a candidate's saved filter combination, checked by the daily
+// cron (sendSavedSearchAlerts in src/lib/cron.ts) for jobs published since
+// lastNotifiedAt. All criteria are optional/ANDed — a blank field means "any".
+model SavedSearch {
+  id             String           @id @default(cuid())
+  candidateId    String
+  candidate      CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  label          String? // candidate-facing name, e.g. "Gold FIFO WA"
+  commodity      Commodity?
+  siteType       SiteExperience?
+  countryCode    String?
+  fifoOnly       Boolean          @default(false)
+  minSalary      Int?
+  createdAt      DateTime         @default(now())
+  lastNotifiedAt DateTime? // jobs published after this are "new" for the next alert
+
+  @@index([candidateId])
 }
 
 // Tickets & certs: "HR licence", "Working at Heights", "First Aid", site inductions...
