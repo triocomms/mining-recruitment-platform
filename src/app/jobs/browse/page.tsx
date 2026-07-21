@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-import { facetSlug, regionSlug } from "@/lib/seo-facets";
+import { getFacetRegionCombos } from "@/lib/seo-facets";
 
 export const revalidate = 3600;
 
@@ -11,28 +10,15 @@ export const metadata = {
 };
 
 export default async function BrowseIndexPage() {
-  const jobs = await prisma.job.findMany({
-    where: { status: "PUBLISHED", region: { not: null } },
-    select: { commodity: true, siteType: true, fifo: true, region: true },
-  });
+  const combos = await getFacetRegionCombos();
 
-  const combos = new Map<string, { label: string; href: string; count: number }>();
-  const pretty = (s: string) => s.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  const add = (facet: string, label: string, region: string) => {
-    const href = `/jobs/browse/${facet}/${regionSlug(region)}`;
-    const cur = combos.get(href);
-    if (cur) cur.count++;
-    else combos.set(href, { label: `${label} jobs in ${region}`, href, count: 1 });
-  };
-
-  for (const j of jobs) {
-    if (!j.region) continue;
-    if (j.commodity) add(facetSlug(j.commodity), pretty(j.commodity), j.region);
-    if (j.siteType) add(facetSlug(j.siteType), pretty(j.siteType), j.region);
-    if (j.fifo) add("fifo", "FIFO", j.region);
-  }
-
-  const list = Array.from(combos.values()).sort((a, b) => b.count - a.count);
+  const list = combos
+    .map((c) => ({
+      href: `/jobs/browse/${c.facetSlug}/${c.regionSlug}`,
+      label: `${c.facetLabel} jobs in ${c.region}`,
+      count: c.count,
+    }))
+    .sort((a, b) => b.count - a.count);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
