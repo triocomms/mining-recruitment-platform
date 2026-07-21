@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { JobCard } from "@/components/JobCard";
 import { isUnresolvedCountry } from "@/lib/utils";
-import { Commodity, SiteExperience } from "@prisma/client";
+import { Commodity, SiteExperience, Prisma } from "@prisma/client";
 
 export const metadata = { title: "Browse mining & resources jobs" };
 export const dynamic = "force-dynamic";
@@ -11,7 +11,16 @@ const PAGE_SIZE = 20;
 export default async function JobsPage({
   searchParams,
 }: {
-  searchParams: { q?: string; country?: string; commodity?: string; site?: string; fifo?: string; page?: string };
+  searchParams: {
+    q?: string;
+    country?: string;
+    commodity?: string;
+    site?: string;
+    fifo?: string;
+    minSalary?: string;
+    maxSalary?: string;
+    page?: string;
+  };
 }) {
   const parsedPage = Number(searchParams.page ?? 1);
   const page = Math.max(1, Number.isFinite(parsedPage) ? Math.floor(parsedPage) : 1);
@@ -27,16 +36,40 @@ export default async function JobsPage({
     if (searchParams.commodity) params.set("commodity", searchParams.commodity);
     if (searchParams.site) params.set("site", searchParams.site);
     if (searchParams.fifo) params.set("fifo", searchParams.fifo);
+    if (searchParams.minSalary) params.set("minSalary", searchParams.minSalary);
+    if (searchParams.maxSalary) params.set("maxSalary", searchParams.maxSalary);
     params.set("page", String(p));
     return `?${params}`;
   }
 
-  const where = {
-    status: "PUBLISHED" as const,
+  // Salary is stored as a min/max range per job (plus currency/period), not a
+  // single figure — so "at least $X" means the job's own upper bound (or its
+  // single value, if only one of min/max was set) clears $X, and "at most $Y"
+  // means the job's lower bound clears under $Y. Jobs with no salary data at
+  // all are excluded from a salary-filtered search rather than guessed at.
+  // Deliberately not converting across currencies/pay periods — that needs
+  // FX/normalization data this repo doesn't have; the UI says so.
+  const minSalary = searchParams.minSalary ? Number(searchParams.minSalary) : undefined;
+  const maxSalary = searchParams.maxSalary ? Number(searchParams.maxSalary) : undefined;
+  const salaryConditions: Prisma.JobWhereInput[] = [];
+  if (minSalary !== undefined && Number.isFinite(minSalary)) {
+    salaryConditions.push({
+      OR: [{ salaryMax: { gte: minSalary } }, { salaryMax: null, salaryMin: { gte: minSalary } }],
+    });
+  }
+  if (maxSalary !== undefined && Number.isFinite(maxSalary)) {
+    salaryConditions.push({
+      OR: [{ salaryMin: { lte: maxSalary } }, { salaryMin: null, salaryMax: { lte: maxSalary } }],
+    });
+  }
+
+  const where: Prisma.JobWhereInput = {
+    status: "PUBLISHED",
     ...(searchParams.country ? { countryCode: searchParams.country.toUpperCase() } : {}),
     ...(searchParams.commodity ? { commodity: searchParams.commodity as Commodity } : {}),
     ...(searchParams.site ? { siteType: searchParams.site as SiteExperience } : {}),
     ...(searchParams.fifo === "1" ? { fifo: true } : {}),
+    ...(salaryConditions.length > 0 ? { AND: salaryConditions } : {}),
     ...(q
       ? {
           OR: [
@@ -86,10 +119,32 @@ export default async function JobsPage({
           <option value="">All site types</option>
           {Object.values(SiteExperience).map((s) => <option key={s} value={s}>{pretty(s)}</option>)}
         </select>
-        <label className="col-span-2 flex items-center gap-2 text-sm sm:col-span-4">
+        <input
+          type="number"
+          name="minSalary"
+          min={0}
+          defaultValue={searchParams.minSalary ?? ""}
+          placeholder="Min salary"
+          className="field"
+          aria-label="Minimum salary"
+        />
+        <input
+          type="number"
+          name="maxSalary"
+          min={0}
+          defaultValue={searchParams.maxSalary ?? ""}
+          placeholder="Max salary"
+          className="field"
+          aria-label="Maximum salary"
+        />
+        <label className="col-span-2 flex items-center gap-2 text-sm sm:col-span-3">
           <input type="checkbox" name="fifo" value="1" defaultChecked={searchParams.fifo === "1"} /> FIFO roles only
         </label>
-        <button className="btn-dark col-span-2 sm:col-span-1" type="submit">Filter</button>
+        <button className="btn-dark col-span-2 sm:col-span-2" type="submit">Filter</button>
+        <p className="col-span-2 text-xs text-ink/50 sm:col-span-5">
+          Salary filter compares figures as entered by employers — currencies and pay periods (hourly/daily/yearly)
+          aren&rsquo;t converted, so mixing them can give odd results.
+        </p>
       </form>
 
       <div className="mt-4 grid gap-3">
