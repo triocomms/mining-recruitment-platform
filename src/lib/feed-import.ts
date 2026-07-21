@@ -40,14 +40,15 @@ export type FeedSyncSummary = {
  *
  * Importing itself is also capped by plan tier (Bronze 25 / Silver 50 /
  * Gold 100, FREE_JOB_ALLOWANCE for no active subscription) — once a
- * company has that many RSS-sourced jobs in DRAFT/PENDING_REVIEW/PUBLISHED,
- * remaining feed items are skipped (skippedTierCap), not just left
- * unpublished. This is separate from the publish-quota check above: it
- * stops a large career feed from flooding a low-tier employer's dashboard
- * and moderation queue with rows they aren't paying for. Un-imported items
- * are reconsidered on the next sync (they're never given a Job row, so
- * they aren't "duplicates"), so freeing up a slot — a job expiring, or an
- * upgrade — lets more in on the following run.
+ * company has that many jobs in DRAFT/PENDING_REVIEW/PUBLISHED *from any
+ * source* (manual, CSV, or RSS — one shared pool), remaining feed items
+ * are skipped (skippedTierCap), not just left unpublished. This is
+ * separate from the publish-quota check above: it stops a large career
+ * feed from flooding a low-tier employer's dashboard and moderation queue
+ * with rows they aren't paying for. Un-imported items are reconsidered on
+ * the next sync (they're never given a Job row, so they aren't
+ * "duplicates"), so freeing up a slot — a job expiring, being archived, or
+ * an upgrade — lets more in on the following run.
  */
 export async function syncJobFeed(feed: JobFeed): Promise<{ summary: FeedSyncSummary; error?: string }> {
   const empty: FeedSyncSummary = {
@@ -92,15 +93,17 @@ export async function syncJobFeed(feed: JobFeed): Promise<{ summary: FeedSyncSum
   const summary = { ...empty, fetched: items.length, skippedUnparseable: skipped };
   const seenRefs: string[] = [];
 
-  // How many jobs this company's plan tier allows in from a feed at all
-  // (Bronze 25 / Silver 50 / Gold 100), independent of the publish quota
-  // above — this caps *importing* via RSS, not just publishing, so a
-  // Bronze employer's 500-item career feed doesn't pile up hundreds of
-  // draft/pending-review rows they're not paying for.
+  // How many jobs this company's plan tier allows in total (Bronze 25 /
+  // Silver 50 / Gold 100), independent of the publish quota above — this
+  // caps *importing* via RSS, not just publishing, so a Bronze employer's
+  // 500-item career feed doesn't pile up hundreds of draft/pending-review
+  // rows they're not paying for. Shares one pool with every other source
+  // (manual entry, CSV import) — a job posted by hand counts against the
+  // same limit as one pulled in from a feed.
   const sub = await prisma.subscription.findUnique({ where: { companyId: company.id } });
   const tierImportCap = sub && sub.status === "ACTIVE" ? PLANS[sub.tier].jobQuota : FREE_JOB_ALLOWANCE;
   let activeImportedCount = await prisma.job.count({
-    where: { companyId: company.id, source: "RSS", status: { in: [...ACTIVE_IMPORT_STATUSES] } },
+    where: { companyId: company.id, status: { in: [...ACTIVE_IMPORT_STATUSES] } },
   });
 
   for (const job of items) {
