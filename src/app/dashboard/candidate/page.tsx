@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { timeAgo } from "@/lib/utils";
+import { scoreMatch } from "@/lib/matching";
+import { JobCard } from "@/components/JobCard";
+import type { Prisma } from "@prisma/client";
 
 const STATUS_TONE: Record<string, string> = {
   SUBMITTED: "bg-bone text-ink",
@@ -21,6 +24,7 @@ export default async function CandidateDashboard() {
   const profile = await prisma.candidateProfile.findUnique({
     where: { userId: session.user.id },
     include: {
+      certifications: { select: { name: true } },
       applications: {
         orderBy: { createdAt: "desc" },
         take: 10,
@@ -52,6 +56,38 @@ export default async function CandidateDashboard() {
   if (!profile.headline) profileGaps.push("headline");
   if (!profile.summary) profileGaps.push("summary");
 
+  // "Jobs matching you" — reuses the same scoreMatch() the employer side
+  // uses to rank candidates against a job (src/lib/matching.ts), just run
+  // in the other direction. Only worth doing once the profile has some
+  // signal to match on — an empty profile can't produce a meaningful score.
+  const orConditions: Prisma.JobWhereInput[] = [];
+  if (profile.commodities.length > 0) orConditions.push({ commodity: { in: profile.commodities } });
+  if (profile.siteExperience.length > 0) orConditions.push({ siteType: { in: profile.siteExperience } });
+  if (profile.countryCode) orConditions.push({ countryCode: profile.countryCode });
+  if (profile.fifoPreference === "FIFO" || profile.fifoPreference === "DIDO") orConditions.push({ fifo: true });
+  if (profile.fifoPreference === "RESIDENTIAL") orConditions.push({ fifo: false });
+
+  const hasMatchSignal = orConditions.length > 0;
+  const appliedJobIds = profile.applications.map((a) => a.jobId);
+
+  const matchPool = hasMatchSignal
+    ? await prisma.job.findMany({
+        where: {
+          status: "PUBLISHED",
+          id: { notIn: appliedJobIds.length > 0 ? appliedJobIds : ["__none__"] },
+          OR: orConditions,
+        },
+        include: { company: { select: { name: true, slug: true, verificationStatus: true } } },
+        orderBy: [{ isPriority: "desc" }, { publishedAt: "desc" }],
+        take: 60,
+      })
+    : [];
+  const matchedJobs = matchPool
+    .map((job) => ({ job, ...scoreMatch({ candidate: profile, job }) }))
+    .filter((m) => m.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6);
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -76,6 +112,34 @@ export default async function CandidateDashboard() {
         <div className="mt-4 rounded-md border border-oregold/40 bg-oregold/10 px-4 py-3 text-sm">
           Complete your profile to apply faster — missing: {profileGaps.join(", ")}.{" "}
           <Link href="/dashboard/candidate/profile" className="font-semibold underline">Fix now</Link>
+        </div>
+      )}
+
+      {hasMatchSignal && matchedJobs.length > 0 && (
+        <section className="mt-8">
+          <h2 className="font-display text-xl uppercase tracking-wide">Jobs matching you</h2>
+          <p className="mt-1 text-xs text-ink/50">
+            Based on your commodities, site experience, and roster preference — same scoring employers see when
+            they search candidates, run the other way.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {matchedJobs.map(({ job, score, reasons }) => (
+              <div key={job.id} className="relative">
+                <span className="absolute right-3 top-3 z-10 tag bg-patina/15 text-patina">{score}% match</span>
+                <JobCard job={job} />
+                {reasons.length > 0 && (
+                  <p className="mt-1 px-1 text-xs text-ink/50">{reasons.join(" · ")}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      {!hasMatchSignal && (
+        <div className="card mt-8 text-sm text-ink/60">
+          Add your commodities, site experience, or roster preference to{" "}
+          <Link href="/dashboard/candidate/profile" className="underline">your profile</Link> to see jobs matched to
+          you here.
         </div>
       )}
 

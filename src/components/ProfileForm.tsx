@@ -30,7 +30,7 @@ const COMMODITY_OPTIONS = [
   ["OTHER", "Other"],
 ] as const;
 
-type Cert = { name: string; issuer: string };
+type Cert = { name: string; issuer: string; expiresAt: string }; // expiresAt: "YYYY-MM-DD" or ""
 
 export function ProfileForm(props: {
   initial: {
@@ -84,7 +84,13 @@ export function ProfileForm(props: {
         visibility: f.visibility,
         certifications: f.certifications
           .filter((c) => c.name.trim())
-          .map((c) => ({ name: c.name.trim(), issuer: c.issuer.trim() || undefined })),
+          .map((c) => ({
+            name: c.name.trim(),
+            issuer: c.issuer.trim() || undefined,
+            // The date input gives "YYYY-MM-DD"; the API expects a full ISO
+            // datetime string (z.string().datetime()).
+            expiresAt: c.expiresAt ? new Date(`${c.expiresAt}T00:00:00.000Z`).toISOString() : undefined,
+          })),
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -243,42 +249,59 @@ export function ProfileForm(props: {
       <fieldset>
         <legend className="label">Certifications & tickets</legend>
         <p className="mb-2 text-xs text-ink/50">e.g. HR licence, Working at Heights, First Aid, Standard 11</p>
-        {f.certifications.map((c, i) => (
-          <div key={i} className="mb-2 flex gap-2">
-            <input
-              className="field flex-1"
-              placeholder="Ticket / cert name"
-              value={c.name}
-              onChange={(e) => {
-                const next = [...f.certifications];
-                next[i] = { ...next[i], name: e.target.value };
-                setF({ ...f, certifications: next });
-              }}
-            />
-            <input
-              className="field flex-1"
-              placeholder="Issuer (optional)"
-              value={c.issuer}
-              onChange={(e) => {
-                const next = [...f.certifications];
-                next[i] = { ...next[i], issuer: e.target.value };
-                setF({ ...f, certifications: next });
-              }}
-            />
-            <button
-              type="button"
-              className="btn-ghost px-3"
-              aria-label="Remove certification"
-              onClick={() => setF({ ...f, certifications: f.certifications.filter((_, j) => j !== i) })}
-            >
-              ✕
-            </button>
-          </div>
-        ))}
+        {f.certifications.map((c, i) => {
+          const expired = c.expiresAt && c.expiresAt < new Date().toISOString().slice(0, 10);
+          return (
+            <div key={i} className="mb-2 flex flex-wrap gap-2 sm:flex-nowrap">
+              <input
+                className="field flex-1 basis-full sm:basis-auto"
+                placeholder="Ticket / cert name"
+                value={c.name}
+                onChange={(e) => {
+                  const next = [...f.certifications];
+                  next[i] = { ...next[i], name: e.target.value };
+                  setF({ ...f, certifications: next });
+                }}
+              />
+              <input
+                className="field flex-1 basis-full sm:basis-auto"
+                placeholder="Issuer (optional)"
+                value={c.issuer}
+                onChange={(e) => {
+                  const next = [...f.certifications];
+                  next[i] = { ...next[i], issuer: e.target.value };
+                  setF({ ...f, certifications: next });
+                }}
+              />
+              <div className="flex flex-1 basis-full items-center gap-1 sm:basis-auto sm:flex-none">
+                <input
+                  type="date"
+                  className={`field w-full sm:w-40 ${expired ? "border-oxide text-oxide" : ""}`}
+                  aria-label="Expiry date (optional)"
+                  title="Expiry date (optional) — leave blank if it doesn't expire"
+                  value={c.expiresAt}
+                  onChange={(e) => {
+                    const next = [...f.certifications];
+                    next[i] = { ...next[i], expiresAt: e.target.value };
+                    setF({ ...f, certifications: next });
+                  }}
+                />
+              </div>
+              <button
+                type="button"
+                className="btn-ghost px-3"
+                aria-label="Remove certification"
+                onClick={() => setF({ ...f, certifications: f.certifications.filter((_, j) => j !== i) })}
+              >
+                ✕
+              </button>
+            </div>
+          );
+        })}
         <button
           type="button"
           className="btn-ghost"
-          onClick={() => setF({ ...f, certifications: [...f.certifications, { name: "", issuer: "" }] })}
+          onClick={() => setF({ ...f, certifications: [...f.certifications, { name: "", issuer: "", expiresAt: "" }] })}
         >
           + Add ticket
         </button>

@@ -47,6 +47,7 @@ export default async function CandidateProfilePage() {
             certifications: profile.certifications.map((c) => ({
               name: c.name,
               issuer: c.issuer ?? "",
+              expiresAt: c.expiresAt ? c.expiresAt.toISOString().slice(0, 10) : "",
             })),
           }}
         />

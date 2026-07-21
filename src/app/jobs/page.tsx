@@ -13,8 +13,23 @@ export default async function JobsPage({
 }: {
   searchParams: { q?: string; country?: string; commodity?: string; site?: string; fifo?: string; page?: string };
 }) {
-  const page = Math.max(1, Number(searchParams.page ?? 1));
+  const parsedPage = Number(searchParams.page ?? 1);
+  const page = Math.max(1, Number.isFinite(parsedPage) ? Math.floor(parsedPage) : 1);
   const q = searchParams.q?.trim();
+
+  // Build Previous/Next hrefs from only the params actually present — passing
+  // searchParams straight into URLSearchParams stringifies missing keys as
+  // the literal text "undefined" (e.g. "...&country=undefined&...").
+  function hrefForPage(p: number) {
+    const params = new URLSearchParams();
+    if (searchParams.q) params.set("q", searchParams.q);
+    if (searchParams.country) params.set("country", searchParams.country);
+    if (searchParams.commodity) params.set("commodity", searchParams.commodity);
+    if (searchParams.site) params.set("site", searchParams.site);
+    if (searchParams.fifo) params.set("fifo", searchParams.fifo);
+    params.set("page", String(p));
+    return `?${params}`;
+  }
 
   const where = {
     status: "PUBLISHED" as const,
@@ -88,8 +103,8 @@ export default async function JobsPage({
 
       {total > PAGE_SIZE && (
         <nav className="mt-6 flex justify-center gap-2" aria-label="Pagination">
-          {page > 1 && <a className="btn-ghost" href={`?${new URLSearchParams({ ...searchParams, page: String(page - 1) })}`}>Previous</a>}
-          {page * PAGE_SIZE < total && <a className="btn-ghost" href={`?${new URLSearchParams({ ...searchParams, page: String(page + 1) })}`}>Next</a>}
+          {page > 1 && <a className="btn-ghost" href={hrefForPage(page - 1)}>Previous</a>}
+          {page * PAGE_SIZE < total && <a className="btn-ghost" href={hrefForPage(page + 1)}>Next</a>}
         </nav>
       )}
     </div>
