@@ -35,11 +35,18 @@ const URL_RE = /\bhttps?:\/\/|\bwww\.[\w-]+\.\w{2,}/i;
 
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
 
-/** Returns a list of spam-heuristic flags. Empty array = clean. */
+/** Returns a list of spam-heuristic flags. Empty array = clean.
+ *
+ * `excludeJobId` matters when re-running this check against a job that
+ * already exists as a row (e.g. resubmitting an edited draft) — without it,
+ * the "recent duplicate" scan below would compare the job against itself
+ * and always flag DUPLICATE_24H. New-submission callers (job hasn't been
+ * created yet) can omit it. */
 export async function detectSpamSignals(
   companyId: string,
   title: string,
-  description: string
+  description: string,
+  excludeJobId?: string
 ): Promise<string[]> {
   const flags: string[] = [];
   const text = `${title}\n${description}`;
@@ -51,7 +58,11 @@ export async function detectSpamSignals(
 
   // Near-duplicate title+description from the same company inside 24h.
   const recent = await prisma.job.findMany({
-    where: { companyId, createdAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) } },
+    where: {
+      companyId,
+      createdAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) },
+      ...(excludeJobId ? { id: { not: excludeJobId } } : {}),
+    },
     select: { title: true, description: true },
     take: 50,
   });

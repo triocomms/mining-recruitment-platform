@@ -3,10 +3,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getJobQuota } from "@/lib/quota";
-import { timeAgo } from "@/lib/utils";
 import { JobPostForm } from "@/components/JobPostForm";
 import { CsvImportForm } from "@/components/CsvImportForm";
 import { JobFeedManager } from "@/components/JobFeedManager";
+import { EmployerJobsList } from "@/components/EmployerJobsList";
 
 export default async function EmployerJobsPage() {
   const session = await auth();
@@ -67,39 +67,23 @@ export default async function EmployerJobsPage() {
           <h2 className="mt-8 font-display text-xl uppercase tracking-wide">
             All ads ({company.jobs.length})
           </h2>
-          {company.jobs.length === 0 ? (
-            <p className="card mt-3 text-sm text-ink/60">Nothing posted yet.</p>
-          ) : (
-            <ul className="mt-3 space-y-2">
-              {company.jobs.map((j) => (
-                <li key={j.id} className="card flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <Link href={`/jobs/${j.slug}`} className="block truncate font-semibold hover:underline">
-                      {j.title}
-                    </Link>
-                    <p className="text-xs text-ink/60">
-                      {j.countryCode}
-                      {j.region ? ` · ${j.region}` : ""} ·{" "}
-                      <Link href={`/dashboard/employer/jobs/${j.id}/applicants`} className="underline">
-                        {j._count.applications} appl.
-                      </Link>
-                      {" · "}{timeAgo(j.createdAt)}
-                      {j.source !== "MANUAL" && ` · ${j.source.toLowerCase()} import`}
-                      {j.isPriority && " · priority"}
-                    </p>
-                    {j.status === "DRAFT" && j.reviewNotes && (
-                      <p className="mt-1 text-xs text-oxide">
-                        Rejected by moderation: {j.reviewNotes}
-                      </p>
-                    )}
-                  </div>
-                  <span className={`tag shrink-0 ${j.status === "PUBLISHED" ? "bg-patina/15 text-patina" : j.status === "DRAFT" ? "bg-oregold/20" : j.status === "PENDING_REVIEW" ? "bg-oregold/30" : ""}`}>
-                    {j.status === "PENDING_REVIEW" ? "in review" : j.status.toLowerCase()}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="mt-3">
+            <EmployerJobsList
+              jobs={company.jobs.map((j) => ({
+                id: j.id,
+                slug: j.slug,
+                title: j.title,
+                countryCode: j.countryCode,
+                region: j.region,
+                createdAt: j.createdAt.toISOString(),
+                source: j.source,
+                isPriority: j.isPriority,
+                status: j.status,
+                reviewNotes: j.reviewNotes,
+                applicationCount: j._count.applications,
+              }))}
+            />
+          </div>
         </section>
       </div>
     </main>
