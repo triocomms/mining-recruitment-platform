@@ -79,7 +79,11 @@ export default async function EmployerJobsPage() {
                     </Link>
                     <p className="text-xs text-ink/60">
                       {j.countryCode}
-                      {j.region ? ` · ${j.region}` : ""} · {j._count.applications} appl. · {timeAgo(j.createdAt)}
+                      {j.region ? ` · ${j.region}` : ""} ·{" "}
+                      <Link href={`/dashboard/employer/jobs/${j.id}/applicants`} className="underline">
+                        {j._count.applications} appl.
+                      </Link>
+                      {" · "}{timeAgo(j.createdAt)}
                       {j.source !== "MANUAL" && ` · ${j.source.toLowerCase()} import`}
                       {j.isPriority && " · priority"}
                     </p>

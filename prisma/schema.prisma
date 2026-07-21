@@ -328,7 +328,8 @@ model Application {
   candidateId String
   candidate   CandidateProfile  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   status      ApplicationStatus @default(SUBMITTED)
-  coverNote   String?
+  coverNote   String? // candidate's own note, set at application time
+  notes       String? // employer's private hiring notes — never shown to the candidate
   resumeKey   String? // snapshot at time of application
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
