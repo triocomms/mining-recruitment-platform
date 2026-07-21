@@ -7,6 +7,30 @@ export function makeSlug(input: string) {
     .toString("hex")}`;
 }
 
+/**
+ * Sentinel used (RSS import, and now anywhere else that couldn't confidently
+ * detect a country) when a real ISO 3166-1 code isn't known. Deliberately not
+ * a real code, so it's unmistakable in the DB — but it must never reach a
+ * public page or a search engine. Use isUnresolvedCountry()/formatLocation()
+ * below anywhere a countryCode gets displayed or fed into structured data.
+ */
+export const UNRESOLVED_COUNTRY_CODE = "ZZ";
+
+export function isUnresolvedCountry(countryCode?: string | null): boolean {
+  return !countryCode || countryCode === UNRESOLVED_COUNTRY_CODE;
+}
+
+/** City/region/country as a human-readable string, silently dropping an
+ * unresolved country rather than ever printing "ZZ" to a job seeker. */
+export function formatLocation(
+  city?: string | null,
+  region?: string | null,
+  countryCode?: string | null
+): string {
+  const parts = [city, region, isUnresolvedCountry(countryCode) ? null : countryCode].filter(Boolean);
+  return parts.length > 0 ? parts.join(", ") : "Location not specified";
+}
+
 export function formatSalary(
   min?: number | null,
   max?: number | null,

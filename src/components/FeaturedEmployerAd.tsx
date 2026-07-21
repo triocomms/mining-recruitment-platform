@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { isUnresolvedCountry } from "@/lib/utils";
 
 /**
  * Sponsored employer placement — MREC unit (300×250, IAB medium rectangle)
@@ -39,7 +40,7 @@ export async function FeaturedEmployerAd() {
         <div className="mt-auto flex items-center justify-between gap-2 pt-2">
           <span className="text-xs text-ink/50">
             {company._count.jobs} live {company._count.jobs === 1 ? "role" : "roles"}
-            {company.countryCode && ` · ${company.countryCode}`}
+            {!isUnresolvedCountry(company.countryCode) && ` · ${company.countryCode}`}
           </span>
           <Link href={`/companies/${company.slug}`} className="btn-primary !px-3 !py-1.5 text-sm">
             View roles →

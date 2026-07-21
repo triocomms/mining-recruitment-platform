@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { JobCard } from "@/components/JobCard";
+import { isUnresolvedCountry } from "@/lib/utils";
 import { Commodity, SiteExperience } from "@prisma/client";
 
 export const metadata = { title: "Browse mining & resources jobs" };
@@ -43,6 +44,10 @@ export default async function JobsPage({
     prisma.job.count({ where }),
     prisma.job.groupBy({ by: ["countryCode"], where: { status: "PUBLISHED" }, _count: true }),
   ]);
+  // A published job with an unresolved country shouldn't have happened (see
+  // src/lib/moderation.ts's jobHasUnresolvedFields gate), but keep the filter
+  // dropdown honest regardless — never offer "ZZ" as something to filter by.
+  const visibleCountries = countries.filter((c) => !isUnresolvedCountry(c.countryCode));
 
   const pretty = (s: string) => s.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -56,7 +61,7 @@ export default async function JobsPage({
         <input name="q" defaultValue={q} placeholder="Keyword" className="field col-span-2 sm:col-span-2" aria-label="Keyword" />
         <select name="country" defaultValue={searchParams.country ?? ""} className="field" aria-label="Country">
           <option value="">All countries</option>
-          {countries.map((c) => <option key={c.countryCode} value={c.countryCode}>{c.countryCode} ({c._count})</option>)}
+          {visibleCountries.map((c) => <option key={c.countryCode} value={c.countryCode}>{c.countryCode} ({c._count})</option>)}
         </select>
         <select name="commodity" defaultValue={searchParams.commodity ?? ""} className="field" aria-label="Commodity">
           <option value="">All commodities</option>

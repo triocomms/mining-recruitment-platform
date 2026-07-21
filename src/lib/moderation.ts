@@ -1,5 +1,22 @@
 import { prisma } from "./prisma";
 import type { VerificationStatus } from "@prisma/client";
+import { isUnresolvedCountry } from "./utils";
+
+/** Shared moderation flag for any source (CSV, manual, RSS, admin approve)
+ * that finds a job whose country couldn't be resolved to a real place. Kept
+ * distinct from RSS's own RSS_NEEDS_FIELD_REVIEW flag (which can cover other
+ * ambiguous fields too) — this one specifically blocks publish until a human
+ * fixes the location. */
+export const COUNTRY_NOT_DETECTED_FLAG = "COUNTRY_NOT_DETECTED";
+
+/** True when a job's data is missing something that must never reach a
+ * public page (currently: an unresolved/"ZZ" country). Any code path that's
+ * about to set status to PUBLISHED — CSV import, manual creation, RSS sync,
+ * or admin approve — should check this first and route to PENDING_REVIEW
+ * (or refuse the approval) instead. */
+export function jobHasUnresolvedFields(job: { countryCode?: string | null }): boolean {
+  return isUnresolvedCountry(job.countryCode);
+}
 
 /**
  * Trust & safety rules for job ad publication.

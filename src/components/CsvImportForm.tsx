@@ -8,6 +8,7 @@ type ImportResult = {
     totalRows: number;
     published: number;
     draftedOverQuota: number;
+    pendingReview: number;
     skippedDuplicates: number;
     failed: number;
   };
@@ -60,6 +61,7 @@ export function CsvImportForm() {
         <div className="rounded-md bg-bone p-3 text-sm">
           <p className="font-semibold">
             {result.summary.published} published · {result.summary.draftedOverQuota} drafted (over quota) ·{" "}
+            {result.summary.pendingReview} pending review (couldn't confirm country) ·{" "}
             {result.summary.skippedDuplicates} duplicates skipped · {result.summary.failed} failed
           </p>
           {result.errors.length > 0 && (

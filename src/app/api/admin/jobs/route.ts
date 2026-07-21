@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAdminAction } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
+import { jobHasUnresolvedFields } from "@/lib/moderation";
 import type { Job, Company, Subscription } from "@prisma/client";
 
 // Bulk approve loops sequentially (DB update + audit log + email per job),
@@ -69,8 +70,17 @@ export async function POST(req: NextRequest) {
       include: { company: { include: { subscription: true, owner: { select: { email: true } } } } },
     });
 
+    // Bulk approval must not be how an unresolved-country job (e.g. RSS's
+    // "ZZ" sentinel) slips through — that's exactly the failure mode this
+    // check exists to close off. Blocked jobs stay in the queue; reject
+    // them with a reason instead so the employer can fix the location.
     let approved = 0;
+    let blockedUnresolvedCountry = 0;
     for (const job of jobs) {
+      if (jobHasUnresolvedFields(job)) {
+        blockedUnresolvedCountry++;
+        continue;
+      }
       await approveJob(job, user.id);
       approved++;
     }
@@ -78,7 +88,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       approved,
-      skipped: d.jobIds.length - approved, // already handled, deleted, or raced by the time we looked
+      blockedUnresolvedCountry,
+      // already handled, deleted, or raced by the time we looked
+      skipped: d.jobIds.length - approved - blockedUnresolvedCountry,
     });
   }
 
@@ -92,6 +104,12 @@ export async function POST(req: NextRequest) {
   }
 
   if (d.action === "APPROVE") {
+    if (jobHasUnresolvedFields(job)) {
+      return NextResponse.json(
+        { error: "This job's country couldn't be confirmed — reject it with a reason instead of approving." },
+        { status: 400 }
+      );
+    }
     await approveJob(job, user.id);
   } else {
     // Rejected ads return to DRAFT with the reason surfaced to the employer.

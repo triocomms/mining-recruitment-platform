@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { formatSalary } from "@/lib/utils";
+import { formatSalary, formatLocation, isUnresolvedCountry } from "@/lib/utils";
 import { ApplyPanel } from "@/components/ApplyPanel";
 
 /** schema.org/JobPosting structured data for Google Jobs indexing. */
@@ -33,7 +33,9 @@ function jobPostingJsonLd(job: any) {
         "@type": "PostalAddress",
         addressLocality: job.city ?? undefined,
         addressRegion: job.region ?? undefined,
-        addressCountry: job.countryCode,
+        // Never feed the "ZZ" unresolved-country sentinel to Google Jobs —
+        // an absent field is far less wrong than a fake country.
+        addressCountry: isUnresolvedCountry(job.countryCode) ? undefined : job.countryCode,
       },
     },
     directApply: true,
@@ -104,7 +106,7 @@ export default async function JobPage({ params }: { params: { slug: string } }) 
           {job.title}
         </h1>
         <div className="mt-3 flex flex-wrap gap-1.5">
-          <span className="tag">{[job.city, job.region, job.countryCode].filter(Boolean).join(", ")}</span>
+          <span className="tag">{formatLocation(job.city, job.region, job.countryCode)}</span>
           {job.fifo && <span className="tag !bg-hivis/15 !text-hivis-deep">FIFO{job.rosterPattern ? ` · ${job.rosterPattern} roster` : ""}</span>}
           {job.commodity && <span className="tag">{pretty(job.commodity)}</span>}
           {job.siteType && <span className="tag">{pretty(job.siteType)}</span>}

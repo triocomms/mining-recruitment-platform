@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { JobCard } from "@/components/JobCard";
 import { ReviewForm } from "@/components/ReviewForm";
-import { timeAgo } from "@/lib/utils";
+import { timeAgo, isUnresolvedCountry } from "@/lib/utils";
 
 export const revalidate = 300;
 
@@ -81,7 +81,10 @@ export default async function CompanyPage({ params }: { params: { slug: string }
             )}
           </h1>
           <p className="mt-1 text-sm text-ink/60">
-            {[company.countryCode, company.size && `${company.size} employees`].filter(Boolean).join(" · ")}
+            {[
+              isUnresolvedCountry(company.countryCode) ? null : company.countryCode,
+              company.size && `${company.size} employees`,
+            ].filter(Boolean).join(" · ")}
             {company._count.followers > 0 && ` · ${company._count.followers} follower${company._count.followers === 1 ? "" : "s"}`}
             {avgRating !== null && (
               <span className="ml-1.5 text-oregold" aria-label={`Average rating ${avgRating.toFixed(1)} of 5`}>

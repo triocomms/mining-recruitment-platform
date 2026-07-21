@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { makeSlug } from "@/lib/utils";
 import { consumePublishSlot, getJobQuota } from "@/lib/quota";
-import { detectSpamSignals, companyIsTrusted } from "@/lib/moderation";
+import { detectSpamSignals, companyIsTrusted, jobHasUnresolvedFields, COUNTRY_NOT_DETECTED_FLAG } from "@/lib/moderation";
 import { Commodity, EmploymentType, SalaryPeriod, SiteExperience, JobStatus } from "@prisma/client";
 
 const jobSchema = z.object({
@@ -61,7 +61,14 @@ export async function POST(req: NextRequest) {
     const trusted =
       moderationFlags.length === 0 &&
       (await companyIsTrusted(company.id, company.verificationStatus));
-    status = trusted ? "PUBLISHED" : "PENDING_REVIEW";
+    // Even a trusted company doesn't skip review if the country is
+    // unresolved — trust covers spam/history, not data completeness.
+    if (jobHasUnresolvedFields({ countryCode: d.countryCode })) {
+      moderationFlags = [...moderationFlags, COUNTRY_NOT_DETECTED_FLAG];
+      status = "PENDING_REVIEW";
+    } else {
+      status = trusted ? "PUBLISHED" : "PENDING_REVIEW";
+    }
   }
 
   const isGold = company.subscription?.status === "ACTIVE" && company.subscription.tier === "GOLD";

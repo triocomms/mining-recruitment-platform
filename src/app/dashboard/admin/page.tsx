@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { timeAgo } from "@/lib/utils";
+import { timeAgo, isUnresolvedCountry } from "@/lib/utils";
 import { AdminVerifyActions, AdminCurateActions, AdminJobReviewQueue, AdminSuspendForm, AdminUnsuspendButton, AdminReportActions, AdminRefundButton } from "@/components/AdminActions";
 
 export default async function AdminDashboard() {
@@ -138,6 +138,7 @@ export default async function AdminDashboard() {
             moderationFlags: j.moderationFlags,
             description: j.description,
             submittedAgo: timeAgo(j.createdAt),
+            unresolvedCountry: isUnresolvedCountry(j.countryCode),
           }))}
         />
       </section>

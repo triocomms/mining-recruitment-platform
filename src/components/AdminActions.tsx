@@ -153,6 +153,11 @@ type PendingReviewJob = {
   moderationFlags: string[];
   description: string;
   submittedAgo: string;
+  /** Country couldn't be confidently detected (RSS/CSV "ZZ" sentinel, or
+   *  blank) — server refuses to approve these, so keep them out of bulk
+   *  selection and flag them clearly rather than letting an admin discover
+   *  the rejection after the fact. */
+  unresolvedCountry: boolean;
 };
 
 /** Job review queue with multi-select + "Approve N selected", plus the existing
@@ -162,9 +167,11 @@ export function AdminJobReviewQueue(props: { jobs: PendingReviewJob[] }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{ approved: number; blockedUnresolvedCountry: number } | null>(null);
 
   const { jobs } = props;
-  const allSelected = jobs.length > 0 && selected.size === jobs.length;
+  const selectable = jobs.filter((j) => !j.unresolvedCountry);
+  const allSelected = selectable.length > 0 && selected.size === selectable.length;
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -176,7 +183,7 @@ export function AdminJobReviewQueue(props: { jobs: PendingReviewJob[] }) {
   }
 
   function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(jobs.map((j) => j.id)));
+    setSelected(allSelected ? new Set() : new Set(selectable.map((j) => j.id)));
   }
 
   async function bulkApprove() {
@@ -187,17 +194,19 @@ export function AdminJobReviewQueue(props: { jobs: PendingReviewJob[] }) {
     }
     setBusy(true);
     setError(null);
+    setResult(null);
     const res = await fetch("/api/admin/jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "BULK_APPROVE", jobIds: Array.from(selected) }),
     });
+    const data = await res.json().catch(() => ({}));
     setBusy(false);
     if (res.ok) {
       setSelected(new Set());
+      setResult({ approved: data.approved ?? 0, blockedUnresolvedCountry: data.blockedUnresolvedCountry ?? 0 });
       router.refresh();
     } else {
-      const data = await res.json().catch(() => ({}));
       setError(data.error ?? "Bulk approve failed");
     }
   }
@@ -210,7 +219,7 @@ export function AdminJobReviewQueue(props: { jobs: PendingReviewJob[] }) {
     <div className="mt-3">
       <div className="card flex flex-wrap items-center justify-between gap-3 bg-sand/40">
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+          <input type="checkbox" checked={allSelected} disabled={selectable.length === 0} onChange={toggleAll} />
           {selected.size > 0 ? `${selected.size} selected` : "Select all"}
         </label>
         <button className="btn-primary text-sm" disabled={selected.size === 0 || busy} onClick={bulkApprove}>
@@ -218,6 +227,13 @@ export function AdminJobReviewQueue(props: { jobs: PendingReviewJob[] }) {
         </button>
       </div>
       {error && <p className="mt-1 text-xs text-oxide">{error}</p>}
+      {result && (
+        <p className="mt-1 text-xs text-ink/60">
+          {result.approved} approved
+          {result.blockedUnresolvedCountry > 0 &&
+            ` · ${result.blockedUnresolvedCountry} skipped (unresolved country — reject with a reason instead)`}
+        </p>
+      )}
 
       <ul className="mt-3 space-y-3">
         {jobs.map((j) => (
@@ -228,15 +244,29 @@ export function AdminJobReviewQueue(props: { jobs: PendingReviewJob[] }) {
                   type="checkbox"
                   className="mt-1 shrink-0"
                   checked={selected.has(j.id)}
+                  disabled={j.unresolvedCountry}
                   onChange={() => toggle(j.id)}
                   aria-label={`Select ${j.title}`}
+                  title={j.unresolvedCountry ? "Country couldn't be confirmed — can't be bulk approved" : undefined}
                 />
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">{j.title}</p>
                   <p className="text-xs text-ink/60">
-                    {j.companyName} · {j.companyVerification.toLowerCase()} · {j.countryCode}
+                    {j.companyName} · {j.companyVerification.toLowerCase()} ·{" "}
+                    {j.unresolvedCountry ? (
+                      <span className="text-oxide">location unconfirmed</span>
+                    ) : (
+                      j.countryCode
+                    )}
                     {j.region ? ` · ${j.region}` : ""} · submitted {j.submittedAgo}
                   </p>
+                  {j.unresolvedCountry && (
+                    <p className="mt-1 text-xs">
+                      <span className="tag bg-oxide/15 text-oxide">
+                        country not detected — reject with a reason, can&apos;t approve as-is
+                      </span>
+                    </p>
+                  )}
                   {j.moderationFlags.length > 0 && (
                     <p className="mt-1 text-xs">
                       {j.moderationFlags.map((f) => (

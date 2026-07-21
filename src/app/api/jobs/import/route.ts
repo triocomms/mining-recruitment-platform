@@ -4,11 +4,19 @@ import { prisma } from "@/lib/prisma";
 import { parseJobsCsv } from "@/lib/csv-import";
 import { makeSlug } from "@/lib/utils";
 import { getJobQuota, consumePublishSlot } from "@/lib/quota";
+import { jobHasUnresolvedFields, COUNTRY_NOT_DETECTED_FLAG } from "@/lib/moderation";
 
 /**
  * CSV bulk upload. multipart/form-data with a `file` field.
  * Valid rows within quota are published; valid rows beyond quota are saved
- * as DRAFTs; invalid rows are returned with line numbers.
+ * as DRAFTs; invalid rows are returned with line numbers. A row whose country
+ * couldn't be resolved to a real place (see jobHasUnresolvedFields) never
+ * auto-publishes even with quota to spare — it lands in PENDING_REVIEW
+ * instead, same as RSS import does for the same reason. CSV rows otherwise
+ * bypass moderation entirely (that's deliberate, per the RSS feature's own
+ * design notes — CSV is a one-off human upload), so this check is the only
+ * thing standing between a bad country code and a published, publicly
+ * visible job ad.
  */
 export async function POST(req: NextRequest) {
   const user = await requireUser("EMPLOYER");
@@ -36,6 +44,7 @@ export async function POST(req: NextRequest) {
   const quotaBefore = await getJobQuota(company.id);
   let published = 0;
   let drafted = 0;
+  let pendingReview = 0;
   let skippedDuplicates = 0;
 
   for (const { data } of rows) {
@@ -50,6 +59,11 @@ export async function POST(req: NextRequest) {
       }
     }
     const canPublish = await consumePublishSlot(company.id);
+    const unresolved = jobHasUnresolvedFields({ countryCode: data.country_code });
+    // Quota is consumed the same way regardless of what status this lands
+    // in — matches the invariant used everywhere else (manual post, RSS):
+    // a submission uses up a slot whether or not it ends up PUBLISHED.
+    const status = !canPublish ? "DRAFT" : unresolved ? "PENDING_REVIEW" : "PUBLISHED";
     await prisma.job.create({
       data: {
         companyId: company.id,
@@ -72,12 +86,15 @@ export async function POST(req: NextRequest) {
         applyUrl: data.apply_url,
         externalRef: data.external_ref,
         source: "CSV",
-        status: canPublish ? "PUBLISHED" : "DRAFT",
-        publishedAt: canPublish ? new Date() : null,
-        expiresAt: canPublish ? new Date(Date.now() + 30 * 24 * 3600 * 1000) : null,
+        status,
+        moderationFlags: unresolved ? [COUNTRY_NOT_DETECTED_FLAG] : [],
+        publishedAt: status === "PUBLISHED" ? new Date() : null,
+        expiresAt: status === "PUBLISHED" ? new Date(Date.now() + 30 * 24 * 3600 * 1000) : null,
       },
     });
-    canPublish ? published++ : drafted++;
+    if (status === "PUBLISHED") published++;
+    else if (status === "PENDING_REVIEW") pendingReview++;
+    else drafted++;
   }
 
   return NextResponse.json({
@@ -85,6 +102,7 @@ export async function POST(req: NextRequest) {
       totalRows: rows.length + errors.length,
       published,
       draftedOverQuota: drafted,
+      pendingReview,
       skippedDuplicates,
       failed: errors.length,
     },
