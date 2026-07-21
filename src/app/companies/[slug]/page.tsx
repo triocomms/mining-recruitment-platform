@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { JobCard } from "@/components/JobCard";
 import { ReviewForm } from "@/components/ReviewForm";
-import { timeAgo, isUnresolvedCountry } from "@/lib/utils";
+import { timeAgo, isUnresolvedCountry, toVideoEmbedUrl } from "@/lib/utils";
 
 export const revalidate = 300;
 
@@ -49,6 +49,7 @@ export default async function CompanyPage({ params }: { params: { slug: string }
     company.reviews.length > 0
       ? company.reviews.reduce((a, r) => a + r.rating, 0) / company.reviews.length
       : null;
+  const videoEmbedUrl = company.videoUrl ? toVideoEmbedUrl(company.videoUrl) : null;
 
   // Can the signed-in candidate review this company? (must have applied)
   const session = await auth();
@@ -73,14 +74,22 @@ export default async function CompanyPage({ params }: { params: { slug: string }
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-4xl uppercase tracking-wide">
-            {company.name}
-            {company.verificationStatus === "VERIFIED" && (
-              <span className="ml-2 align-middle text-xl text-patina" title="Verified employer">✓</span>
-            )}
-          </h1>
-          <p className="mt-1 text-sm text-ink/60">
+        <div className="flex items-center gap-4">
+          {company.logoKey && (
+            <img
+              src={`/api/files?key=${encodeURIComponent(company.logoKey)}`}
+              alt={`${company.name} logo`}
+              className="h-16 w-16 shrink-0 rounded-md border border-ink/10 object-contain bg-white"
+            />
+          )}
+          <div>
+            <h1 className="font-display text-4xl uppercase tracking-wide">
+              {company.name}
+              {company.verificationStatus === "VERIFIED" && (
+                <span className="ml-2 align-middle text-xl text-patina" title="Verified employer">✓</span>
+              )}
+            </h1>
+            <p className="mt-1 text-sm text-ink/60">
             {[
               isUnresolvedCountry(company.countryCode) ? null : company.countryCode,
               company.size && `${company.size} employees`,
@@ -92,6 +101,7 @@ export default async function CompanyPage({ params }: { params: { slug: string }
               </span>
             )}
           </p>
+          </div>
         </div>
         {company.website && (
           <a href={company.website} target="_blank" rel="noreferrer nofollow" className="btn-ghost">
@@ -102,6 +112,34 @@ export default async function CompanyPage({ params }: { params: { slug: string }
 
       {company.description && (
         <p className="mt-4 max-w-3xl whitespace-pre-wrap text-ink/80">{company.description}</p>
+      )}
+
+      {(videoEmbedUrl || company.galleryKeys.length > 0) && (
+        <section className="mt-6 space-y-4">
+          {videoEmbedUrl && (
+            <div className="aspect-video w-full max-w-3xl overflow-hidden rounded-md">
+              <iframe
+                src={videoEmbedUrl}
+                title={`${company.name} video`}
+                className="h-full w-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          )}
+          {company.galleryKeys.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+              {company.galleryKeys.map((key) => (
+                <img
+                  key={key}
+                  src={`/api/files?key=${encodeURIComponent(key)}`}
+                  alt={`${company.name} at work`}
+                  className="aspect-square w-full rounded-md border border-ink/10 object-cover"
+                />
+              ))}
+            </div>
+          )}
+        </section>
       )}
 
       <div className="strata mt-8" aria-hidden />

@@ -217,6 +217,8 @@ model Company {
   website            String?
   description        String?
   logoKey            String?
+  galleryKeys        String[]           @default([]) // employer branding photos, shown on the company page
+  videoUrl           String? // YouTube/Vimeo link, embedded on the company page
   countryCode        String?
   size               String?
   verificationStatus VerificationStatus @default(UNVERIFIED)

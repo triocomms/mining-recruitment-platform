@@ -23,6 +23,7 @@ export const UPLOAD_RULES = {
   certification: { maxBytes: 8 * 1024 * 1024, types: ["application/pdf", "image/jpeg", "image/png"] },
   blogCover: { maxBytes: 6 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp"] },
   blogImage: { maxBytes: 6 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp"] },
+  companyMedia: { maxBytes: 6 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp"] },
 } as const;
 
 export type UploadKind = keyof typeof UPLOAD_RULES;

@@ -3,9 +3,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileUpload } from "@/components/FileUpload";
+import { CompanyGalleryUploader } from "@/components/CompanyGalleryUploader";
 
 export function CompanyForm(props: {
-  initial: { name: string; website: string; description: string; countryCode: string; size: string };
+  initial: {
+    name: string;
+    website: string;
+    description: string;
+    countryCode: string;
+    size: string;
+    logoKey: string | null;
+    galleryKeys: string[];
+    videoUrl: string;
+  };
 }) {
   const router = useRouter();
   const [f, setF] = useState(props.initial);
@@ -25,6 +35,7 @@ export function CompanyForm(props: {
         description: f.description || null,
         countryCode: f.countryCode ? f.countryCode.toUpperCase() : null,
         size: f.size || null,
+        videoUrl: f.videoUrl || null,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -69,8 +80,30 @@ export function CompanyForm(props: {
             <option>1000+</option>
           </select>
         </div>
-        <FileUpload kind="logo" label="Company logo" accept="image/*" field="logoKey" endpoint="/api/company" />
+        <FileUpload kind="logo" label="Company logo" accept="image/*" field="logoKey" endpoint="/api/company" currentKey={f.logoKey} />
       </div>
+
+      <div className="border-t border-ink/10 pt-4">
+        <p className="label">Branding media</p>
+        <p className="mt-1 text-xs text-ink/50">
+          Shown on your public company page to help candidates picture working with you.
+        </p>
+        <div className="mt-3">
+          <label className="label" htmlFor="co-video">Video link (YouTube or Vimeo, optional)</label>
+          <input
+            id="co-video"
+            type="url"
+            className="field"
+            placeholder="https://www.youtube.com/watch?v=..."
+            value={f.videoUrl}
+            onChange={(e) => setF({ ...f, videoUrl: e.target.value })}
+          />
+        </div>
+        <div className="mt-3">
+          <CompanyGalleryUploader initialKeys={props.initial.galleryKeys} />
+        </div>
+      </div>
+
       {msg && <p className={`text-sm ${msg.ok ? "text-patina" : "text-oxide"}`} role="status">{msg.text}</p>}
       <button type="submit" className="btn-primary" disabled={saving}>
         {saving ? "Saving…" : "Save details"}

@@ -231,6 +231,9 @@ export default async function EmployerDashboard() {
               description: company.description ?? "",
               countryCode: company.countryCode ?? "",
               size: company.size ?? "",
+              logoKey: company.logoKey,
+              galleryKeys: company.galleryKeys,
+              videoUrl: company.videoUrl ?? "",
             }}
           />
         </div>

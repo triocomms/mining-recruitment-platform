@@ -45,6 +45,39 @@ export function formatSalary(
   return `${range}${per}`;
 }
 
+/**
+ * Converts a YouTube/Vimeo watch link into an embeddable iframe src, or
+ * returns null for anything else. Used both to validate a submitted
+ * videoUrl (reject unsupported hosts rather than storing an arbitrary
+ * iframe src) and to render it on the company page.
+ */
+export function toVideoEmbedUrl(url: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  const host = u.hostname.replace(/^www\./, "");
+
+  if (host === "youtube.com" || host === "m.youtube.com") {
+    if (u.pathname === "/watch") {
+      const id = u.searchParams.get("v");
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (u.pathname.startsWith("/embed/")) return `https://www.youtube.com${u.pathname}`;
+  }
+  if (host === "youtu.be") {
+    const id = u.pathname.slice(1);
+    return id ? `https://www.youtube.com/embed/${id}` : null;
+  }
+  if (host === "vimeo.com") {
+    const id = u.pathname.slice(1);
+    return /^\d+$/.test(id) ? `https://player.vimeo.com/video/${id}` : null;
+  }
+  return null;
+}
+
 export function timeAgo(date: Date) {
   const s = Math.floor((Date.now() - date.getTime()) / 1000);
   if (s < 3600) return `${Math.max(1, Math.floor(s / 60))}m ago`;

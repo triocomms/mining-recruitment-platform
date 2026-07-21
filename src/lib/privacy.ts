@@ -62,6 +62,7 @@ export async function eraseUser(userId: string) {
   }
   if (user.company?.logoKey) s3Keys.push(user.company.logoKey);
   if (user.company?.kybDocumentKey) s3Keys.push(user.company.kybDocumentKey);
+  if (user.company?.galleryKeys) s3Keys.push(...user.company.galleryKeys);
 
   await prisma.$transaction(async (tx) => {
     if (user.candidate) {

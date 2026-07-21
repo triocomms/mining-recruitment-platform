@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { toVideoEmbedUrl } from "@/lib/utils";
 
 const schema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
@@ -10,6 +11,11 @@ const schema = z.object({
   countryCode: z.string().length(2).nullable().optional(),
   size: z.string().trim().max(40).nullable().optional(),
   logoKey: z.string().nullable().optional(),
+  videoUrl: z
+    .string()
+    .nullable()
+    .optional()
+    .refine((v) => !v || toVideoEmbedUrl(v) !== null, "Only YouTube or Vimeo links are supported"),
   kybDocumentKey: z.string().optional(), // submitting KYB moves status to PENDING
 });
 
