@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteObject } from "@/lib/s3";
 
-export const MAX_GALLERY_IMAGES = 6;
+const MAX_GALLERY_IMAGES = 6;
 
 const keySchema = z.object({ key: z.string().min(1) });
 
