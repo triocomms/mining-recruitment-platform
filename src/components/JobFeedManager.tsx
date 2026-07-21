@@ -11,6 +11,7 @@ type SyncSummary = {
   draftedOverQuota: number;
   pendingReview: number;
   skippedDuplicates: number;
+  skippedTierCap: number;
   expiredNoLongerInFeed: number;
 };
 
@@ -31,6 +32,9 @@ function SummaryLine({ s }: { s: SyncSummary }) {
       {s.fetched} in feed · {s.published} published · {s.pendingReview} pending review ·{" "}
       {s.draftedOverQuota} drafted (over quota) · {s.skippedDuplicates} already imported ·{" "}
       {s.expiredNoLongerInFeed} expired (removed from feed)
+      {s.skippedTierCap > 0 && (
+        <> · {s.skippedTierCap} not imported (plan limit reached — upgrade to import more)</>
+      )}
       {s.skippedUnparseable > 0 && <> · {s.skippedUnparseable} skipped (unreadable)</>}
     </p>
   );

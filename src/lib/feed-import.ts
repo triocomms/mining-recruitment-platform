@@ -1,9 +1,13 @@
 import { prisma } from "./prisma";
 import { makeSlug } from "./utils";
-import { getJobQuota, consumePublishSlot } from "./quota";
+import { consumePublishSlot } from "./quota";
+import { PLANS, FREE_JOB_ALLOWANCE } from "./plans";
 import { companyIsTrusted, detectSpamSignals } from "./moderation";
 import { parseAndNormalizeFeed } from "./rss-feed";
 import type { JobFeed } from "@prisma/client";
+
+/** Job statuses that count as "currently occupying a feed import slot". */
+const ACTIVE_IMPORT_STATUSES = ["DRAFT", "PENDING_REVIEW", "PUBLISHED"] as const;
 
 const MAX_ITEMS_PER_SYNC = 300;
 const FETCH_TIMEOUT_MS = 15_000;
@@ -16,6 +20,7 @@ export type FeedSyncSummary = {
   draftedOverQuota: number;
   pendingReview: number;
   skippedDuplicates: number;
+  skippedTierCap: number;
   expiredNoLongerInFeed: number;
 };
 
@@ -32,6 +37,17 @@ export type FeedSyncSummary = {
  * meaningfully, DRAFT for the employer to complete). Jobs previously
  * imported from this feed that have disappeared from the feed are expired,
  * so a de-listed BHP role doesn't linger on Orebridge.
+ *
+ * Importing itself is also capped by plan tier (Bronze 25 / Silver 50 /
+ * Gold 100, FREE_JOB_ALLOWANCE for no active subscription) — once a
+ * company has that many RSS-sourced jobs in DRAFT/PENDING_REVIEW/PUBLISHED,
+ * remaining feed items are skipped (skippedTierCap), not just left
+ * unpublished. This is separate from the publish-quota check above: it
+ * stops a large career feed from flooding a low-tier employer's dashboard
+ * and moderation queue with rows they aren't paying for. Un-imported items
+ * are reconsidered on the next sync (they're never given a Job row, so
+ * they aren't "duplicates"), so freeing up a slot — a job expiring, or an
+ * upgrade — lets more in on the following run.
  */
 export async function syncJobFeed(feed: JobFeed): Promise<{ summary: FeedSyncSummary; error?: string }> {
   const empty: FeedSyncSummary = {
@@ -42,6 +58,7 @@ export async function syncJobFeed(feed: JobFeed): Promise<{ summary: FeedSyncSum
     draftedOverQuota: 0,
     pendingReview: 0,
     skippedDuplicates: 0,
+    skippedTierCap: 0,
     expiredNoLongerInFeed: 0,
   };
 
@@ -75,6 +92,17 @@ export async function syncJobFeed(feed: JobFeed): Promise<{ summary: FeedSyncSum
   const summary = { ...empty, fetched: items.length, skippedUnparseable: skipped };
   const seenRefs: string[] = [];
 
+  // How many jobs this company's plan tier allows in from a feed at all
+  // (Bronze 25 / Silver 50 / Gold 100), independent of the publish quota
+  // above — this caps *importing* via RSS, not just publishing, so a
+  // Bronze employer's 500-item career feed doesn't pile up hundreds of
+  // draft/pending-review rows they're not paying for.
+  const sub = await prisma.subscription.findUnique({ where: { companyId: company.id } });
+  const tierImportCap = sub && sub.status === "ACTIVE" ? PLANS[sub.tier].jobQuota : FREE_JOB_ALLOWANCE;
+  let activeImportedCount = await prisma.job.count({
+    where: { companyId: company.id, source: "RSS", status: { in: [...ACTIVE_IMPORT_STATUSES] } },
+  });
+
   for (const job of items) {
     seenRefs.push(job.externalRef);
 
@@ -83,6 +111,11 @@ export async function syncJobFeed(feed: JobFeed): Promise<{ summary: FeedSyncSum
     });
     if (existing) {
       summary.skippedDuplicates++;
+      continue;
+    }
+
+    if (activeImportedCount >= tierImportCap) {
+      summary.skippedTierCap++;
       continue;
     }
 
@@ -133,6 +166,7 @@ export async function syncJobFeed(feed: JobFeed): Promise<{ summary: FeedSyncSum
     });
 
     summary.created++;
+    activeImportedCount++; // this row now occupies one of the tier's import slots
     if (status === "PUBLISHED") summary.published++;
     else if (status === "DRAFT") summary.draftedOverQuota++;
     else summary.pendingReview++;
