@@ -280,7 +280,13 @@ export default async function AdminDashboard() {
       </section>
 
       <section className="mt-10">
-        <h2 className="font-display text-xl uppercase tracking-wide">News & blog curation</h2>
+        <div className="flex items-end justify-between gap-3">
+          <h2 className="font-display text-xl uppercase tracking-wide">News & blog curation</h2>
+          <div className="flex gap-3 text-sm">
+            <a href="/dashboard/posts/new" className="underline">Write a post</a>
+            <a href="/dashboard/posts" className="underline">My posts</a>
+          </div>
+        </div>
         <p className="mt-1 text-xs text-ink/50">
           Set a rank (0 = top) to feature a post on the homepage; clear it to unfeature; hide removes it from the site.
         </p>
