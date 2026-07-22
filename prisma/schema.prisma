@@ -33,14 +33,39 @@ model User {
   verifyTokenHash      String?   @unique
   verifyTokenExpiresAt DateTime?
 
-  candidate    CandidateProfile?
-  company      Company?          @relation("CompanyOwner")
-  consents     ConsentRecord[]
-  dataRequests DataRequest[]
-  messages     Message[]
-  reports      Report[]          @relation("Reporter")
-  blogPosts    BlogPost[]        @relation("EditorialAuthor")
-  auditEntries AdminAuditLog[]   @relation("AuditAdmin")
+  candidate     CandidateProfile?
+  company       Company?          @relation("CompanyOwner")
+  consents      ConsentRecord[]
+  dataRequests  DataRequest[]
+  messages      Message[]
+  reports       Report[]          @relation("Reporter")
+  blogPosts     BlogPost[]        @relation("EditorialAuthor")
+  auditEntries  AdminAuditLog[]   @relation("AuditAdmin")
+  notifications Notification[]
+}
+
+enum NotificationType {
+  APPLICATION_STATUS
+  NEW_MESSAGE
+  SAVED_SEARCH_MATCH
+}
+
+// In-app notifications shown via the header bell and /dashboard/notifications.
+// Always written alongside (not instead of) the equivalent email — see
+// src/lib/notify.ts, the single call site that creates these.
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  linkUrl   String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
 }
 
 // Immutable audit trail of consent — never update rows, only append.
