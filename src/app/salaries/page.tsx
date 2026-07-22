@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { commodityToSlug, MIN_SALARY_SAMPLE_SIZE } from "@/lib/utils";
 import { Commodity } from "@prisma/client";
+import { IndustryBenchmarks } from "@/components/IndustryBenchmarks";
 
 export const metadata = {
   title: "Mining & resources salary guide",
@@ -50,6 +51,9 @@ export default async function SalariesPage() {
           );
         })}
       </div>
+
+      <div className="strata mt-8" aria-hidden />
+      <IndustryBenchmarks />
     </main>
   );
 }
