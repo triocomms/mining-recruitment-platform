@@ -3,6 +3,8 @@ import { z } from "zod";
 import { requireUser, auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { notifyUser } from "@/lib/notify";
+import { statusNotificationCopy } from "@/lib/notification-copy";
 import { ApplicationStatus } from "@prisma/client";
 
 const applySchema = z.object({
@@ -79,7 +81,10 @@ export async function PATCH(req: NextRequest) {
 
   const app = await prisma.application.findUnique({
     where: { id: d.applicationId },
-    include: { job: { select: { company: { select: { ownerId: true } } } }, candidate: { select: { userId: true } } },
+    include: {
+      job: { select: { title: true, company: { select: { ownerId: true, name: true } } } },
+      candidate: { select: { userId: true, user: { select: { email: true } } } },
+    },
   });
   if (!app) return NextResponse.json({ error: "Application not found" }, { status: 404 });
 
@@ -102,6 +107,24 @@ export async function PATCH(req: NextRequest) {
       ...(d.notes !== undefined ? { notes: d.notes || null } : {}),
     },
   });
+
+  // Tell the candidate — only for an actual employer-driven status change,
+  // and only for statuses worth surfacing (see statusNotificationCopy).
+  // Best-effort: notifyUser() never throws, so this can't fail the update.
+  if (d.status !== undefined && isEmployerOwner && d.status !== app.status) {
+    const copy = statusNotificationCopy(d.status, app.job.title, app.job.company.name);
+    if (copy) {
+      notifyUser({
+        userId: app.candidate.userId,
+        type: "APPLICATION_STATUS",
+        title: copy.title,
+        body: copy.body,
+        linkUrl: "/dashboard/candidate",
+        email: { to: app.candidate.user.email, subject: copy.title, body: copy.body, template: "APPLICATION_STATUS" },
+      }).catch((e) => console.error("[applications] status notification failed", e));
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }
 
