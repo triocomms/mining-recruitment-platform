@@ -1,4 +1,5 @@
 import type { CandidateProfile, Certification, Job } from "@prisma/client";
+import { stripMarkdown } from "@/lib/markdown";
 
 /**
  * Weighted candidate↔job matching (v1 — no ML, transparent scoring).
@@ -58,7 +59,9 @@ export function scoreMatch({ candidate, job }: MatchInput): MatchResult {
   );
   if (validCerts.length > 0) {
     possible += 20;
-    const jobText = `${job.title} ${job.description}`.toLowerCase();
+    // stripMarkdown() so a cert name spanning a **bold**/[link](url) boundary
+    // in the raw source still matches as a contiguous phrase.
+    const jobText = `${job.title} ${stripMarkdown(job.description)}`.toLowerCase();
     const hits = validCerts.filter((c) => {
       const name = c.name.toLowerCase().trim();
       return name.length >= 3 && jobText.includes(name);

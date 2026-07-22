@@ -1,13 +1,20 @@
 /**
- * Minimal, safe markdown renderer for blog posts.
+ * Minimal, safe markdown renderer, used for blog post bodies, job
+ * descriptions, and company "about" text.
  *
  * Security model: ALL input is HTML-escaped first, then a small set of
  * markdown constructs is transformed back into tags we control. Raw HTML in
  * the source can never reach the output, so no sanitizer dependency is needed.
  *
  * Supported: ## / ### headings, **bold**, *italic*, [links](https://…),
- * ![alt](image-url), - bullet lists, paragraphs, and YouTube/Vimeo embeds
- * (a bare video URL on its own line becomes a responsive iframe).
+ * ![alt](image-url), - bullet lists, 1. numbered lists, paragraphs, and
+ * YouTube/Vimeo embeds (a bare video URL on its own line becomes a
+ * responsive iframe).
+ *
+ * Plain text with no markdown syntax at all (e.g. RSS/CSV-imported job
+ * descriptions run through stripHtml()) still renders correctly — it just
+ * falls through to the paragraph case below — so this is safe to use
+ * uniformly across every description field regardless of source.
  */
 
 const escapeHtml = (s: string) =>
@@ -85,9 +92,36 @@ export function renderMarkdown(source: string): string {
       html.push(`<ul class="my-4 list-disc space-y-1 pl-6">${items}</ul>`);
       continue;
     }
+    if (lines.every((l) => /^\d+\. /.test(l.trim()))) {
+      const items = lines.map((l) => `<li>${inline(l.trim().replace(/^\d+\. /, ""))}</li>`).join("");
+      html.push(`<ol class="my-4 list-decimal space-y-1 pl-6">${items}</ol>`);
+      continue;
+    }
 
     html.push(`<p class="my-4 leading-relaxed">${inline(trimmed).replace(/\n/g, "<br/>")}</p>`);
   }
 
   return html.join("\n");
+}
+
+/**
+ * Reduces markdown source to plain text: strips list/heading markers and
+ * emphasis, unwraps links/images to their visible text, and collapses
+ * whitespace. Used anywhere raw markdown syntax (**, [text](url), etc.)
+ * would otherwise leak into a place that expects plain text — meta
+ * descriptions, sponsored-ad previews, and candidate/job certification
+ * matching.
+ */
+export function stripMarkdown(source: string): string {
+  return source
+    .replace(/\r\n/g, "\n")
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^[-*]\s+/gm, "")
+    .replace(/^\d+\.\s+/gm, "")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*\n]+)\*/g, "$1")
+    .replace(/\n{2,}/g, "\n\n")
+    .trim();
 }
