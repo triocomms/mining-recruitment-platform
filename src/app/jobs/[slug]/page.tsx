@@ -141,8 +141,10 @@ export default async function JobPage({ params }: { params: { slug: string } }) 
           applied={applied}
           bookmarked={bookmarked}
         />
-        <ShareJobButton title={job.title} companyName={job.company.name} />
-        <ReportJobButton jobId={job.id} signedIn={Boolean(session?.user)} />
+        <div className="flex flex-wrap gap-2">
+          <ShareJobButton title={job.title} companyName={job.company.name} />
+          <ReportJobButton jobId={job.id} signedIn={Boolean(session?.user)} />
+        </div>
       </aside>
     </article>
   );
