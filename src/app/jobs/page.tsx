@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { JobCard } from "@/components/JobCard";
 import { SaveSearchButton } from "@/components/SaveSearchButton";
+import { Typeahead } from "@/components/Typeahead";
 import { isUnresolvedCountry } from "@/lib/utils";
 import { Commodity, SiteExperience, Prisma } from "@prisma/client";
 
@@ -21,12 +22,14 @@ export default async function JobsPage({
     fifo?: string;
     minSalary?: string;
     maxSalary?: string;
+    loc?: string;
     page?: string;
   };
 }) {
   const parsedPage = Number(searchParams.page ?? 1);
   const page = Math.max(1, Number.isFinite(parsedPage) ? Math.floor(parsedPage) : 1);
   const q = searchParams.q?.trim();
+  const loc = searchParams.loc?.trim();
 
   // Build Previous/Next hrefs from only the params actually present — passing
   // searchParams straight into URLSearchParams stringifies missing keys as
@@ -34,6 +37,7 @@ export default async function JobsPage({
   function hrefForPage(p: number) {
     const params = new URLSearchParams();
     if (searchParams.q) params.set("q", searchParams.q);
+    if (searchParams.loc) params.set("loc", searchParams.loc);
     if (searchParams.country) params.set("country", searchParams.country);
     if (searchParams.commodity) params.set("commodity", searchParams.commodity);
     if (searchParams.site) params.set("site", searchParams.site);
@@ -65,22 +69,36 @@ export default async function JobsPage({
     });
   }
 
+  // q and loc each need their own OR group, plus the salary OR groups above —
+  // a plain object can only have one "OR" key, so all of them are folded
+  // into a single AND array instead of spread in individually.
+  const andConditions: Prisma.JobWhereInput[] = [...salaryConditions];
+  if (q) {
+    andConditions.push({
+      OR: [
+        { title: { contains: q, mode: "insensitive" as const } },
+        { description: { contains: q, mode: "insensitive" as const } },
+        { roleCategory: { contains: q, mode: "insensitive" as const } },
+      ],
+    });
+  }
+  if (loc) {
+    andConditions.push({
+      OR: [
+        { city: { contains: loc, mode: "insensitive" as const } },
+        { region: { contains: loc, mode: "insensitive" as const } },
+        { countryCode: { contains: loc, mode: "insensitive" as const } },
+      ],
+    });
+  }
+
   const where: Prisma.JobWhereInput = {
     status: "PUBLISHED",
     ...(searchParams.country ? { countryCode: searchParams.country.toUpperCase() } : {}),
     ...(searchParams.commodity ? { commodity: searchParams.commodity as Commodity } : {}),
     ...(searchParams.site ? { siteType: searchParams.site as SiteExperience } : {}),
     ...(searchParams.fifo === "1" ? { fifo: true } : {}),
-    ...(salaryConditions.length > 0 ? { AND: salaryConditions } : {}),
-    ...(q
-      ? {
-          OR: [
-            { title: { contains: q, mode: "insensitive" as const } },
-            { description: { contains: q, mode: "insensitive" as const } },
-            { roleCategory: { contains: q, mode: "insensitive" as const } },
-          ],
-        }
-      : {}),
+    ...(andConditions.length > 0 ? { AND: andConditions } : {}),
   };
 
   const session = await auth();
@@ -109,17 +127,32 @@ export default async function JobsPage({
       <p className="mt-1 text-sm text-ink/60">{total} live {total === 1 ? "job" : "jobs"}</p>
 
       {/* Mobile-first filters: stacked selects, GET form so results are shareable */}
-      <form className="card mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5" method="GET">
-        <input name="q" defaultValue={q} placeholder="Keyword" className="field col-span-2 sm:col-span-2" aria-label="Keyword" />
-        <select name="country" defaultValue={searchParams.country ?? ""} className="field" aria-label="Country">
+      <form className="card mt-4 grid grid-cols-2 gap-2 sm:grid-cols-6" method="GET">
+        <Typeahead
+          name="q"
+          type="title"
+          defaultValue={q}
+          placeholder="Job title"
+          className="field col-span-2 sm:col-span-2"
+          ariaLabel="Job title"
+        />
+        <Typeahead
+          name="loc"
+          type="location"
+          defaultValue={loc}
+          placeholder="City, region, or country"
+          className="field col-span-2 sm:col-span-2"
+          ariaLabel="Location"
+        />
+        <select name="country" defaultValue={searchParams.country ?? ""} className="field col-span-1" aria-label="Country">
           <option value="">All countries</option>
           {visibleCountries.map((c) => <option key={c.countryCode} value={c.countryCode}>{c.countryCode} ({c._count})</option>)}
         </select>
-        <select name="commodity" defaultValue={searchParams.commodity ?? ""} className="field" aria-label="Commodity">
+        <select name="commodity" defaultValue={searchParams.commodity ?? ""} className="field col-span-1" aria-label="Commodity">
           <option value="">All commodities</option>
           {Object.values(Commodity).map((c) => <option key={c} value={c}>{pretty(c)}</option>)}
         </select>
-        <select name="site" defaultValue={searchParams.site ?? ""} className="field" aria-label="Site type">
+        <select name="site" defaultValue={searchParams.site ?? ""} className="field col-span-2 sm:col-span-2" aria-label="Site type">
           <option value="">All site types</option>
           {Object.values(SiteExperience).map((s) => <option key={s} value={s}>{pretty(s)}</option>)}
         </select>
@@ -129,7 +162,7 @@ export default async function JobsPage({
           min={0}
           defaultValue={searchParams.minSalary ?? ""}
           placeholder="Min salary"
-          className="field"
+          className="field col-span-1 sm:col-span-2"
           aria-label="Minimum salary"
         />
         <input
@@ -138,14 +171,14 @@ export default async function JobsPage({
           min={0}
           defaultValue={searchParams.maxSalary ?? ""}
           placeholder="Max salary"
-          className="field"
+          className="field col-span-1 sm:col-span-2"
           aria-label="Maximum salary"
         />
         <label className="col-span-2 flex items-center gap-2 text-sm sm:col-span-3">
           <input type="checkbox" name="fifo" value="1" defaultChecked={searchParams.fifo === "1"} /> FIFO roles only
         </label>
-        <button className="btn-dark col-span-2 sm:col-span-2" type="submit">Filter</button>
-        <p className="col-span-2 text-xs text-ink/50 sm:col-span-5">
+        <button className="btn-dark col-span-2 sm:col-span-3" type="submit">Filter</button>
+        <p className="col-span-2 text-xs text-ink/50 sm:col-span-6">
           Salary filter compares figures as entered by employers — currencies and pay periods (hourly/daily/yearly)
           aren&rsquo;t converted, so mixing them can give odd results.
         </p>
