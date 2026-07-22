@@ -6,6 +6,7 @@ import { formatSalary, formatLocation, isUnresolvedCountry, commodityToSlug } fr
 import { renderMarkdown } from "@/lib/markdown";
 import { ApplyPanel } from "@/components/ApplyPanel";
 import { ReportJobButton } from "@/components/ReportJobButton";
+import { ShareJobButton } from "@/components/ShareJobButton";
 
 /** schema.org/JobPosting structured data for Google Jobs indexing. */
 function jobPostingJsonLd(job: any) {
@@ -140,6 +141,7 @@ export default async function JobPage({ params }: { params: { slug: string } }) 
           applied={applied}
           bookmarked={bookmarked}
         />
+        <ShareJobButton title={job.title} companyName={job.company.name} />
         <ReportJobButton jobId={job.id} signedIn={Boolean(session?.user)} />
       </aside>
     </article>
