@@ -29,6 +29,7 @@ export default async function CandidateProfilePage() {
 
       <div className="mt-8">
         <ProfileForm
+          hasResume={!!profile.resumeKey}
           initial={{
             firstName: profile.firstName,
             lastName: profile.lastName,
