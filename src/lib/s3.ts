@@ -46,6 +46,21 @@ export async function presignDownload(key: string, expiresIn = 300) {
   return getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: key }), { expiresIn });
 }
 
+/** Reads an object's bytes straight into memory — for server-side
+ *  processing (resume parsing, P2.7) where the app itself needs the file
+ *  content rather than handing the browser a signed URL. Resumes are
+ *  capped at 8MB (see UPLOAD_RULES) so buffering fully is fine. */
+export async function getObjectBuffer(key: string): Promise<Buffer> {
+  const res = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+  const chunks: Buffer[] = [];
+  // @ts-expect-error - Body is a Node Readable in the Node runtime, which is
+  // all this app targets (see route.ts files' absence of "edge" runtime).
+  for await (const chunk of res.Body) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
 export async function deleteObject(key: string) {
   await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
 }
