@@ -196,6 +196,11 @@ model CandidateProfile {
 // Job alerts: a candidate's saved filter combination, checked by the daily
 // cron (sendSavedSearchAlerts in src/lib/cron.ts) for jobs published since
 // lastNotifiedAt. All criteria are optional/ANDed — a blank field means "any".
+enum AlertFrequency {
+  DAILY
+  WEEKLY
+}
+
 model SavedSearch {
   id             String           @id @default(cuid())
   candidateId    String
@@ -206,6 +211,7 @@ model SavedSearch {
   countryCode    String?
   fifoOnly       Boolean          @default(false)
   minSalary      Int?
+  frequency      AlertFrequency   @default(DAILY)
   createdAt      DateTime         @default(now())
   lastNotifiedAt DateTime? // jobs published after this are "new" for the next alert
 
