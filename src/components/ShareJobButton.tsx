@@ -41,7 +41,11 @@ export function ShareJobButton({ title, companyName }: { title: string; companyN
 
   if (!open) {
     return (
-      <button type="button" onClick={handleClick} className="text-xs text-ink/40 underline">
+      <button
+        type="button"
+        onClick={handleClick}
+        className="inline-flex items-center rounded-full border border-ink/20 px-3 py-1.5 text-xs font-medium text-ink/70 transition-colors hover:border-ink/40 hover:bg-ink/5"
+      >
         Share this job
       </button>
     );

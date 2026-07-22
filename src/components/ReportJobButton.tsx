@@ -49,7 +49,11 @@ export function ReportJobButton({ jobId, signedIn }: { jobId: string; signedIn: 
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="text-xs text-ink/40 underline">
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center rounded-full border border-ink/20 px-3 py-1.5 text-xs font-medium text-ink/70 transition-colors hover:border-ink/40 hover:bg-ink/5"
+      >
         Report this ad
       </button>
     );
