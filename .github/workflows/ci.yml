@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same branch so a rapid string of pushes
+# doesn't queue up redundant builds.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # A real, reachable Postgres is required: `next build` touches the
+  # database for any statically-generated page, and the unit tests that
+  # exercise Prisma-backed modules mock ./prisma directly so they don't need
+  # it, but `prisma generate`/`db push` still need a valid connection string.
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/orebridge_ci
+  NEXTAUTH_URL: http://localhost:3000
+  NEXTAUTH_SECRET: ci-only-secret-do-not-use-in-production
+  NEXT_PUBLIC_APP_URL: http://localhost:3000
+  # Placeholders only — nothing in the build or the test/e2e suite makes a
+  # real Stripe/S3/Resend call. If that ever changes, replace these with
+  # real `secrets.*` values in the repo's Actions settings instead of
+  # hardcoding anything sensitive here.
+  STRIPE_SECRET_KEY: sk_test_ci_placeholder
+  STRIPE_WEBHOOK_SECRET: whsec_ci_placeholder
+  STRIPE_PRICE_BRONZE: price_ci_placeholder
+  STRIPE_PRICE_SILVER: price_ci_placeholder
+  STRIPE_PRICE_GOLD: price_ci_placeholder
+  STRIPE_PRICE_OVERAGE: price_ci_placeholder
+  S3_ENDPOINT: https://ci-placeholder.example.com
+  S3_REGION: auto
+  S3_BUCKET: ci-placeholder
+  S3_ACCESS_KEY_ID: ci-placeholder
+  S3_SECRET_ACCESS_KEY: ci-placeholder
+  RESEND_API_KEY: ""
+  EMAIL_FROM: "Orebridge <notifications@example.com>"
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: orebridge_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx prisma generate
+      - run: npx prisma db push
+
+      # Unit tests first — this is the fast, cheap gate. If business logic
+      # is broken, no point spending minutes on a full Next.js build.
+      - run: npm run test
+
+      - run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run e2e smoke tests
+        run: npm run test:e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
