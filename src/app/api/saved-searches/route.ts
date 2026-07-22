@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Commodity, SiteExperience } from "@prisma/client";
+import { Commodity, SiteExperience, AlertFrequency } from "@prisma/client";
 
 const MAX_SAVED_SEARCHES = 10;
 
@@ -13,6 +13,7 @@ const createSchema = z.object({
   countryCode: z.string().length(2).optional(),
   fifoOnly: z.boolean().optional(),
   minSalary: z.number().int().positive().optional(),
+  frequency: z.nativeEnum(AlertFrequency).optional(),
 });
 
 export async function GET() {
@@ -62,9 +63,35 @@ export async function POST(req: NextRequest) {
       countryCode: d.countryCode?.toUpperCase(),
       fifoOnly: d.fifoOnly ?? false,
       minSalary: d.minSalary,
+      frequency: d.frequency ?? "DAILY",
     },
   });
   return NextResponse.json({ id: search.id }, { status: 201 });
+}
+
+const patchSchema = z.object({ id: z.string(), frequency: z.nativeEnum(AlertFrequency) });
+
+/** Change an existing saved search's alert frequency (daily/weekly). */
+export async function PATCH(req: NextRequest) {
+  const user = await requireUser("CANDIDATE");
+  if (!user) return NextResponse.json({ error: "Candidate account required" }, { status: 403 });
+
+  const candidate = await prisma.candidateProfile.findUnique({ where: { userId: user.id } });
+  if (!candidate) return NextResponse.json({ error: "No profile" }, { status: 400 });
+
+  const parsed = patchSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid request" }, { status: 400 });
+  }
+
+  // Scoped by candidateId as well as id, same "update if mine" guard used
+  // by DELETE below.
+  const updated = await prisma.savedSearch.updateMany({
+    where: { id: parsed.data.id, candidateId: candidate.id },
+    data: { frequency: parsed.data.frequency },
+  });
+  if (updated.count === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(req: NextRequest) {
