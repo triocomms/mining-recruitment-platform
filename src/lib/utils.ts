@@ -31,6 +31,27 @@ export function formatLocation(
   return parts.length > 0 ? parts.join(", ") : "Location not specified";
 }
 
+/** De-dupes and formats a list of job locations for the /jobs search
+ *  typeahead (P1.6) — suggestions are drawn straight from existing
+ *  PUBLISHED job data, not a separate table. Preserves input order (callers
+ *  pass rows already ordered newest-first) and drops anything that would
+ *  render as "Location not specified". */
+export function dedupeLocationLabels(
+  jobs: { city?: string | null; region?: string | null; countryCode?: string | null }[],
+  max: number
+): string[] {
+  const seen = new Set<string>();
+  const labels: string[] = [];
+  for (const j of jobs) {
+    const label = formatLocation(j.city, j.region, j.countryCode);
+    if (label === "Location not specified" || seen.has(label)) continue;
+    seen.add(label);
+    labels.push(label);
+    if (labels.length >= max) break;
+  }
+  return labels;
+}
+
 export function formatSalary(
   min?: number | null,
   max?: number | null,

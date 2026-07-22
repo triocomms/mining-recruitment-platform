@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { rollupDay } from "./analytics";
 import { sendEmail } from "./email";
+import { shouldCheckSavedSearchToday } from "./saved-search-frequency";
 
 /** Days a soft-deleted account is retained before hard purge. */
 export const PURGE_GRACE_DAYS = 30;
@@ -78,6 +79,11 @@ export function syncJobFeeds() {
  * if never alerted), email a digest if there are any, and advance
  * lastNotifiedAt regardless — a saved search with zero new matches this run
  * shouldn't get flooded once a bunch show up later than expected.
+ *
+ * This cron itself only ever runs once a day, so a WEEKLY-frequency search
+ * is skipped on days it isn't due (see shouldCheckSavedSearchToday) — and
+ * on a skipped day lastNotifiedAt is deliberately left untouched, so its
+ * matches keep accumulating for the next due date instead of being missed.
  */
 export function sendSavedSearchAlerts() {
   return record("saved-search-alerts", async () => {
@@ -86,7 +92,12 @@ export function sendSavedSearchAlerts() {
     });
 
     let alerted = 0;
+    let skipped = 0;
     for (const s of searches) {
+      if (!shouldCheckSavedSearchToday(s.frequency, s.lastNotifiedAt)) {
+        skipped++;
+        continue;
+      }
       const since = s.lastNotifiedAt ?? s.createdAt;
       const matches = await prisma.job.findMany({
         where: {
@@ -117,6 +128,6 @@ export function sendSavedSearchAlerts() {
       }
       await prisma.savedSearch.update({ where: { id: s.id }, data: { lastNotifiedAt: new Date() } });
     }
-    return `${searches.length} saved search(es) checked, ${alerted} alert(s) sent`;
+    return `${searches.length} saved search(es) total, ${searches.length - skipped} checked, ${alerted} alert(s) sent, ${skipped} skipped (not due)`;
   });
 }
