@@ -43,14 +43,26 @@ async function uploadImage(kind: "blogCover" | "blogImage", file: File): Promise
 
 type GalleryItem = { key: string; altText: string; name: string };
 
-export function BlogComposer() {
+export type ExistingPost = {
+  id: string;
+  title: string;
+  excerpt: string | null;
+  body: string;
+  coverKey: string | null;
+  coverAlt: string | null;
+  gallery: { key: string; altText: string }[];
+};
+
+export function BlogComposer({ post }: { post?: ExistingPost }) {
   const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [excerpt, setExcerpt] = useState("");
-  const [body, setBody] = useState("");
-  const [coverKey, setCoverKey] = useState<string | null>(null);
-  const [coverAlt, setCoverAlt] = useState("");
-  const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [title, setTitle] = useState(post?.title ?? "");
+  const [excerpt, setExcerpt] = useState(post?.excerpt ?? "");
+  const [body, setBody] = useState(post?.body ?? "");
+  const [coverKey, setCoverKey] = useState<string | null>(post?.coverKey ?? null);
+  const [coverAlt, setCoverAlt] = useState(post?.coverAlt ?? "");
+  const [gallery, setGallery] = useState<GalleryItem[]>(
+    post?.gallery.map((g) => ({ ...g, name: g.key.split("/").pop() ?? g.key })) ?? []
+  );
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -87,8 +99,8 @@ export function BlogComposer() {
   async function submit(publish: boolean) {
     setBusy(true);
     setStatus(null);
-    const res = await fetch("/api/blog", {
-      method: "POST",
+    const res = await fetch(post ? `/api/blog/${post.id}` : "/api/blog", {
+      method: post ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title,
@@ -106,7 +118,23 @@ export function BlogComposer() {
       setStatus(data.error ?? "Could not save post");
       return;
     }
-    router.push(publish ? `/news/${data.slug}` : "/dashboard");
+    router.push(publish ? `/news/${data.slug}` : "/dashboard/posts");
+    router.refresh();
+  }
+
+  async function deletePost() {
+    if (!post) return;
+    if (!window.confirm("Delete this post? This can't be undone.")) return;
+    setBusy(true);
+    setStatus(null);
+    const res = await fetch(`/api/blog/${post.id}`, { method: "DELETE" });
+    setBusy(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setStatus(data.error ?? "Could not delete post");
+      return;
+    }
+    router.push("/dashboard/posts");
     router.refresh();
   }
 
@@ -195,6 +223,11 @@ export function BlogComposer() {
         >
           {busy ? "Working…" : "Publish"}
         </button>
+        {post && (
+          <button className="btn-ghost text-oxide" disabled={busy} onClick={deletePost}>
+            Delete
+          </button>
+        )}
       </div>
       {status && <p className="text-sm text-ink/70">{status}</p>}
     </div>
