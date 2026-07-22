@@ -7,6 +7,7 @@ type Filters = { commodity?: string; site?: string; country?: string; fifo?: str
 export function SaveSearchButton({ signedIn, filters }: { signedIn: boolean; filters: Filters }) {
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState("");
+  const [frequency, setFrequency] = useState<"DAILY" | "WEEKLY">("DAILY");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -26,12 +27,16 @@ export function SaveSearchButton({ signedIn, filters }: { signedIn: boolean; fil
         countryCode: filters.country || undefined,
         fifoOnly: filters.fifo === "1",
         minSalary: filters.minSalary ? Number(filters.minSalary) : undefined,
+        frequency,
       }),
     });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
     if (res.ok) {
-      setMsg({ ok: true, text: "Saved — we'll email you when new matching jobs go live." });
+      setMsg({
+        ok: true,
+        text: `Saved — we'll email you ${frequency === "WEEKLY" ? "weekly" : "daily"} when new matching jobs go live.`,
+      });
       setOpen(false);
     } else {
       setMsg({ ok: false, text: data.error ?? "Could not save search" });
@@ -66,6 +71,15 @@ export function SaveSearchButton({ signedIn, filters }: { signedIn: boolean; fil
         maxLength={80}
         onChange={(e) => setLabel(e.target.value)}
       />
+      <select
+        className="field text-sm"
+        value={frequency}
+        onChange={(e) => setFrequency(e.target.value as "DAILY" | "WEEKLY")}
+        aria-label="Alert frequency"
+      >
+        <option value="DAILY">Daily alerts</option>
+        <option value="WEEKLY">Weekly alerts</option>
+      </select>
       <button type="button" onClick={save} disabled={busy} className="btn-dark text-sm">
         {busy ? "Saving…" : "Save"}
       </button>
