@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { SignOutButton } from "./SignOutButton";
+import { NotificationBell } from "./NotificationBell";
 
 export async function Header() {
   const session = await auth();
@@ -25,6 +26,7 @@ export async function Header() {
           <Link href="/pricing" className="hidden rounded px-2 py-1 hover:text-hivis sm:block">Pricing</Link>
           {user ? (
             <>
+              <NotificationBell />
               <SignOutButton />
               <Link href={dashboardHref} className="btn-primary !px-3 !py-1.5">Dashboard</Link>
             </>
