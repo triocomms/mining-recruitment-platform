@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { formatSalary, formatLocation, isUnresolvedCountry, commodityToSlug } from "@/lib/utils";
+import { renderMarkdown } from "@/lib/markdown";
 import { ApplyPanel } from "@/components/ApplyPanel";
 import { ReportJobButton } from "@/components/ReportJobButton";
 
@@ -19,7 +20,9 @@ function jobPostingJsonLd(job: any) {
     "@context": "https://schema.org/",
     "@type": "JobPosting",
     title: job.title,
-    description: job.description,
+    // Google's JobPosting description field explicitly allows basic HTML, so
+    // render markdown to HTML here rather than dumping raw markdown syntax.
+    description: renderMarkdown(job.description),
     datePosted: job.publishedAt?.toISOString(),
     validThrough: job.expiresAt?.toISOString(),
     employmentType: employment[job.employmentType] ?? "FULL_TIME",
@@ -122,7 +125,10 @@ export default async function JobPage({ params }: { params: { slug: string } }) 
           </p>
         )}
         <div className="strata mt-6 max-w-[160px]" aria-hidden="true" />
-        <div className="prose-sm mt-6 max-w-none whitespace-pre-wrap text-ink/90">{job.description}</div>
+        <div
+          className="mt-6 max-w-none text-ink/90"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(job.description) }}
+        />
       </div>
 
       <aside className="lg:sticky lg:top-20 lg:self-start space-y-3">
