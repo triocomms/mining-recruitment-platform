@@ -79,6 +79,7 @@ export default async function EmployerDashboard() {
         <div className="flex flex-wrap gap-2">
           <Link href="/dashboard/employer/jobs" className="btn-primary">Post a job</Link>
           <Link href="/dashboard/posts/new" className="btn-ghost">Write a news post</Link>
+          <Link href="/dashboard/posts" className="btn-ghost">My posts</Link>
           <Link href="/dashboard/messages" className="btn-ghost">Messages</Link>
           <Link href="/dashboard/employer/billing" className="btn-ghost">Billing</Link>
         </div>
