@@ -3,6 +3,8 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { checkMessageAllowance, checkEmployerOutreachAllowance } from "@/lib/rate-limit";
+import { notifyUser } from "@/lib/notify";
+import { truncateForPreview } from "@/lib/notification-copy";
 
 const schema = z.object({
   // Either an existing thread, or a target to open one with.
@@ -77,7 +79,10 @@ export async function POST(req: NextRequest) {
   // Verify membership of the thread before sending.
   const thread = await prisma.messageThread.findUnique({
     where: { id: threadId },
-    include: { company: { select: { ownerId: true } }, candidate: { select: { userId: true } } },
+    include: {
+      company: { select: { ownerId: true, name: true, owner: { select: { email: true } } } },
+      candidate: { select: { userId: true, firstName: true, lastName: true, user: { select: { email: true } } } },
+    },
   });
   if (!thread) return NextResponse.json({ error: "Thread not found" }, { status: 404 });
   const isMember = thread.company.ownerId === user.id || thread.candidate.userId === user.id;
@@ -87,6 +92,27 @@ export async function POST(req: NextRequest) {
     data: { threadId, senderUserId: user.id, body: d.body },
   });
   await prisma.messageThread.update({ where: { id: threadId }, data: { updatedAt: new Date() } });
+
+  // Notify whichever side didn't just send this message. Best-effort:
+  // notifyUser() never throws, so a failure here can't fail the send.
+  const senderIsEmployer = thread.company.ownerId === user.id;
+  const recipient = senderIsEmployer
+    ? { userId: thread.candidate.userId, email: thread.candidate.user.email, senderName: thread.company.name }
+    : { userId: thread.company.ownerId, email: thread.company.owner.email, senderName: `${thread.candidate.firstName} ${thread.candidate.lastName}` };
+  const preview = truncateForPreview(d.body);
+  notifyUser({
+    userId: recipient.userId,
+    type: "NEW_MESSAGE",
+    title: `New message from ${recipient.senderName}`,
+    body: preview,
+    linkUrl: `/dashboard/messages/${threadId}`,
+    email: {
+      to: recipient.email,
+      subject: `New message from ${recipient.senderName}`,
+      body: `${preview}\n\nReply from your Orebridge dashboard.`,
+      template: "NEW_MESSAGE",
+    },
+  }).catch((e) => console.error("[messages] notification failed", e));
 
   return NextResponse.json({ id: message.id, threadId }, { status: 201 });
 }
