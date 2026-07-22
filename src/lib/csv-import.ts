@@ -32,9 +32,15 @@ export const csvJobRow = z.object({
   country_code: z.string().trim().length(2).transform((s) => s.toUpperCase()),
   region: z.string().trim().optional().default(""),
   city: z.string().trim().optional().default(""),
-  employment_type: enumFrom(EmploymentType).optional().default("FULL_TIME" as any),
-  commodity: enumFrom(Commodity).optional(),
-  site_type: enumFrom(SiteExperience).optional(),
+  // enumFrom(...).optional() alone only accepts a genuinely-missing key —
+  // a CSV blank cell parses as "", not undefined, so without the explicit
+  // "" -> fallback branch below every row with a blank optional enum column
+  // was being rejected outright instead of treated as "not specified".
+  employment_type: enumFrom(EmploymentType)
+    .optional()
+    .or(z.literal("").transform((): EmploymentType => "FULL_TIME" as EmploymentType)),
+  commodity: enumFrom(Commodity).optional().or(z.literal("").transform(() => undefined)),
+  site_type: enumFrom(SiteExperience).optional().or(z.literal("").transform(() => undefined)),
   role_category: z.string().trim().max(80).optional().default(""),
   fifo: z
     .string()
@@ -46,7 +52,7 @@ export const csvJobRow = z.object({
   salary_min: optionalInt,
   salary_max: optionalInt,
   salary_currency: z.string().trim().length(3).toUpperCase().optional().or(z.literal("").transform(() => undefined)),
-  salary_period: enumFrom(SalaryPeriod).optional(),
+  salary_period: enumFrom(SalaryPeriod).optional().or(z.literal("").transform(() => undefined)),
   apply_url: z.string().trim().url().optional().or(z.literal("").transform(() => undefined)),
   external_ref: z.string().trim().max(80).optional().or(z.literal("").transform(() => undefined)),
 });
