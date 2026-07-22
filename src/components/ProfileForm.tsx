@@ -35,6 +35,7 @@ const COMMODITY_OPTIONS = [
 type Cert = { name: string; issuer: string; referenceNo: string; expiresAt: string; documentKey: string | null };
 
 export function ProfileForm(props: {
+  hasResume?: boolean;
   initial: {
     firstName: string;
     lastName: string;
@@ -59,6 +60,58 @@ export function ProfileForm(props: {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [uploadingCert, setUploadingCert] = useState<number | null>(null);
+  const [parsingResume, setParsingResume] = useState(false);
+  const [parseMsg, setParseMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Heuristic suggestions only ever fill gaps — an existing value (typed by
+  // the candidate, or from an earlier save) is never overwritten, and
+  // nothing here is persisted until "Save profile" is clicked.
+  async function parseResume() {
+    setParsingResume(true);
+    setParseMsg(null);
+    try {
+      const res = await fetch("/api/candidate/resume-parse", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setParseMsg({ ok: false, text: data.error ?? "Could not parse your resume" });
+        return;
+      }
+      const s = data.suggested ?? {};
+      const dedupUpper = (existing: string[], extra: string[] = []) =>
+        Array.from(new Set([...existing, ...extra]));
+      const existingCertNames = new Set(f.certifications.map((c) => c.name.toLowerCase()));
+      const newCerts: Cert[] = (s.certifications ?? [])
+        .filter((name: string) => !existingCertNames.has(name.toLowerCase()))
+        .map((name: string) => ({ name, issuer: "", referenceNo: "", expiresAt: "", documentKey: null }));
+
+      setF((prev) => ({
+        ...prev,
+        phone: prev.phone || s.phone || prev.phone,
+        yearsExperience: prev.yearsExperience ?? s.yearsExperience ?? prev.yearsExperience,
+        fifoPreference: prev.fifoPreference || s.fifoPreference || prev.fifoPreference,
+        siteExperience: dedupUpper(prev.siteExperience, s.siteExperience),
+        commodities: dedupUpper(prev.commodities, s.commodities),
+        certifications: [...prev.certifications, ...newCerts],
+      }));
+
+      const found =
+        (s.phone ? 1 : 0) +
+        (s.yearsExperience !== undefined ? 1 : 0) +
+        (s.fifoPreference ? 1 : 0) +
+        (s.siteExperience?.length ?? 0) +
+        (s.commodities?.length ?? 0) +
+        newCerts.length;
+      setParseMsg(
+        found > 0
+          ? { ok: true, text: `Filled in ${found} field${found === 1 ? "" : "s"} below from your resume — review before saving.` }
+          : { ok: true, text: "Couldn't confidently pick anything out of your resume — nothing changed." }
+      );
+    } catch {
+      setParseMsg({ ok: false, text: "Something went wrong reading your resume" });
+    } finally {
+      setParsingResume(false);
+    }
+  }
 
   function toggle(list: string[], value: string) {
     return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -139,6 +192,23 @@ export function ProfileForm(props: {
 
   return (
     <form onSubmit={save} className="space-y-6">
+      {props.hasResume && (
+        <div className="card flex flex-wrap items-center gap-3 border-ink/10 text-sm">
+          <button type="button" className="btn-ghost" onClick={parseResume} disabled={parsingResume}>
+            {parsingResume ? "Reading your resume…" : "Suggest fields from my resume"}
+          </button>
+          <p className="text-xs text-ink/50">
+            Best-effort keyword matching — it only fills in blanks below, never overwrites what you've
+            already entered. Always double-check before saving.
+          </p>
+          {parseMsg && (
+            <p className={`w-full text-xs ${parseMsg.ok ? "text-patina" : "text-oxide"}`} role="status">
+              {parseMsg.text}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Visibility — the single most consequential switch on the page */}
       <fieldset className="card border-2 border-ink/10">
         <legend className="label px-1">Who can see your profile?</legend>
