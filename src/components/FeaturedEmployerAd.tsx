@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { isUnresolvedCountry } from "@/lib/utils";
+import { stripMarkdown } from "@/lib/markdown";
 
 /**
  * Sponsored employer placement — MREC unit (300×250, IAB medium rectangle)
@@ -34,7 +35,7 @@ export async function FeaturedEmployerAd() {
         <p className="mt-0.5 text-xs text-patina" title="Verified employer">✓ Verified employer</p>
         {company.description && (
           <p className="mt-2 text-xs leading-relaxed text-ink/70 line-clamp-3">
-            {company.description}
+            {stripMarkdown(company.description)}
           </p>
         )}
         <div className="mt-auto flex items-center justify-between gap-2 pt-2">

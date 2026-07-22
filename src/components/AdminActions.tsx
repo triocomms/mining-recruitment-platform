@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { renderMarkdown } from "@/lib/markdown";
 
 export function AdminVerifyActions(props: { companyId: string }) {
   const router = useRouter();
@@ -278,7 +279,10 @@ export function AdminJobReviewQueue(props: { jobs: PendingReviewJob[] }) {
                   )}
                   <details className="mt-2 text-sm">
                     <summary className="cursor-pointer text-ink/60">Full description</summary>
-                    <p className="mt-1 whitespace-pre-wrap text-ink/80">{j.description}</p>
+                    <div
+                      className="mt-1 text-ink/80"
+                      dangerouslySetInnerHTML={{ __html: renderMarkdown(j.description) }}
+                    />
                   </details>
                 </div>
               </div>

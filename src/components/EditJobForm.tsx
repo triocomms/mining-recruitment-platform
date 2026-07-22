@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 const COMMODITIES = ["GOLD","IRON_ORE","COAL","COPPER","LITHIUM","NICKEL","BAUXITE_ALUMINA","URANIUM","MINERAL_SANDS","RARE_EARTHS","ZINC_LEAD","OIL_GAS","OTHER"];
 const SITES = ["OPEN_PIT","UNDERGROUND","PROCESSING_PLANT","EXPLORATION","PORT_RAIL","SMELTER_REFINERY","WORKSHOP_MAINTENANCE","CORPORATE_OFFICE"];
@@ -100,7 +101,7 @@ export function EditJobForm(props: {
       </div>
       <div>
         <label className="label" htmlFor="j-desc">Description</label>
-        <textarea id="j-desc" className="field min-h-36" required minLength={30} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
+        <RichTextEditor id="j-desc" className="min-h-36" required minLength={30} value={f.description} onChange={(v) => setF({ ...f, description: v })} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

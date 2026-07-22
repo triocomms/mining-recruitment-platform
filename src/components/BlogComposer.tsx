@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 /**
  * Blog/news post composer with cover + gallery images.
@@ -120,11 +121,10 @@ export function BlogComposer() {
         <input id="bp-excerpt" className="field" maxLength={300} value={excerpt} onChange={(e) => setExcerpt(e.target.value)} />
       </div>
       <div>
-        <label className="label" htmlFor="bp-body">Body — markdown supported</label>
-        <textarea id="bp-body" className="field min-h-64 font-mono text-sm" rows={12} value={body} onChange={(e) => setBody(e.target.value)} />
+        <label className="label" htmlFor="bp-body">Body</label>
+        <RichTextEditor id="bp-body" className="min-h-64" rows={12} value={body} onChange={setBody} />
         <p className="mt-1 text-xs text-ink/50">
-          Supports ## headings, **bold**, *italic*, [links](https://…), bullet lists, and a YouTube or
-          Vimeo URL on its own line for an embedded video.
+          Also supports ## headings and a YouTube or Vimeo URL on its own line for an embedded video.
         </p>
       </div>
 

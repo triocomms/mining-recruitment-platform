@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileUpload } from "@/components/FileUpload";
 import { CompanyGalleryUploader } from "@/components/CompanyGalleryUploader";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 export function CompanyForm(props: {
   initial: {
@@ -62,7 +63,7 @@ export function CompanyForm(props: {
       </div>
       <div>
         <label className="label" htmlFor="co-desc">About the company</label>
-        <textarea id="co-desc" className="field min-h-28" maxLength={5000} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
+        <RichTextEditor id="co-desc" className="min-h-28" maxLength={5000} value={f.description} onChange={(v) => setF({ ...f, description: v })} />
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
