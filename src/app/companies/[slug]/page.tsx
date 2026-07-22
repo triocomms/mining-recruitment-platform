@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { JobCard } from "@/components/JobCard";
 import { ReviewForm } from "@/components/ReviewForm";
 import { timeAgo, isUnresolvedCountry, toVideoEmbedUrl } from "@/lib/utils";
+import { renderMarkdown, stripMarkdown } from "@/lib/markdown";
 
 export const revalidate = 300;
 
@@ -16,7 +17,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   if (!company) return { title: "Company not found — Orebridge" };
   return {
     title: `${company.name} — jobs & news on Orebridge`,
-    description: company.description?.slice(0, 160) ?? `Open roles at ${company.name}`,
+    description: company.description
+      ? stripMarkdown(company.description).slice(0, 160)
+      : `Open roles at ${company.name}`,
   };
 }
 
@@ -111,7 +114,10 @@ export default async function CompanyPage({ params }: { params: { slug: string }
       </div>
 
       {company.description && (
-        <p className="mt-4 max-w-3xl whitespace-pre-wrap text-ink/80">{company.description}</p>
+        <div
+          className="mt-4 max-w-3xl text-ink/80"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(company.description) }}
+        />
       )}
 
       {(videoEmbedUrl || company.galleryKeys.length > 0) && (
