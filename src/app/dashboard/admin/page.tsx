@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -74,15 +75,15 @@ export default async function AdminDashboard() {
 
       <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          ["Users", users],
-          ["Live jobs", liveJobs],
-          ["Applications", applications],
-          ["Active subs", activeSubs],
-        ].map(([label, value]) => (
-          <div key={label as string} className="card text-center">
+          ["Users", users, "/dashboard/admin/users"],
+          ["Live jobs", liveJobs, "/dashboard/admin/jobs"],
+          ["Applications", applications, "/dashboard/admin/applications"],
+          ["Active subs", activeSubs, "/dashboard/admin/subscriptions"],
+        ].map(([label, value, href]) => (
+          <Link key={label as string} href={href as string} className="card block text-center hover:shadow-md">
             <p className="font-display text-3xl">{value as number}</p>
             <p className="label">{label}</p>
-          </div>
+          </Link>
         ))}
       </section>
 
