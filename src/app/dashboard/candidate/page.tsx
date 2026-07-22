@@ -6,6 +6,7 @@ import { timeAgo } from "@/lib/utils";
 import { scoreMatch } from "@/lib/matching";
 import { JobCard } from "@/components/JobCard";
 import { DeleteSavedSearchButton } from "@/components/DeleteSavedSearchButton";
+import { SavedSearchFrequencyToggle } from "@/components/SavedSearchFrequencyToggle";
 import type { Prisma } from "@prisma/client";
 
 const STATUS_TONE: Record<string, string> = {
@@ -263,6 +264,9 @@ export default async function CandidateDashboard() {
                         <DeleteSavedSearchButton id={s.id} />
                       </div>
                       {s.label && summary && <p className="mt-1 text-xs text-ink/60">{summary}</p>}
+                      <div className="mt-1">
+                        <SavedSearchFrequencyToggle id={s.id} frequency={s.frequency} />
+                      </div>
                     </li>
                   );
                 })}
