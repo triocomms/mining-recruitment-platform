@@ -72,8 +72,18 @@ export default async function JobPage({ params }: { params: { slug: string } }) 
   const session = await auth();
   let applied = false;
   let bookmarked = false;
+  let candidate: {
+    id: string;
+    resumeKey: string | null;
+    resumeName: string | null;
+    coverLetterKey: string | null;
+    coverLetterName: string | null;
+  } | null = null;
   if (session?.user.role === "CANDIDATE") {
-    const candidate = await prisma.candidateProfile.findUnique({ where: { userId: session.user.id } });
+    candidate = await prisma.candidateProfile.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true, resumeKey: true, resumeName: true, coverLetterKey: true, coverLetterName: true },
+    });
     if (candidate) {
       applied = Boolean(
         await prisma.application.findUnique({
@@ -140,6 +150,10 @@ export default async function JobPage({ params }: { params: { slug: string } }) 
           viewerRole={session?.user.role ?? null}
           applied={applied}
           bookmarked={bookmarked}
+          defaultResumeKey={candidate?.resumeKey ?? null}
+          defaultResumeName={candidate?.resumeName ?? null}
+          defaultCoverLetterKey={candidate?.coverLetterKey ?? null}
+          defaultCoverLetterName={candidate?.coverLetterName ?? null}
         />
         <div className="flex flex-wrap gap-2">
           <ShareJobButton title={job.title} companyName={job.company.name} />
