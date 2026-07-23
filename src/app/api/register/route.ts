@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { makeSlug } from "@/lib/utils";
 import { sendVerificationEmail } from "@/lib/verification";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const schema = z.object({
   role: z.enum(["CANDIDATE", "EMPLOYER"]), // ADMIN is never self-service
@@ -17,6 +18,10 @@ const schema = z.object({
   acceptTerms: z.literal(true, { errorMap: () => ({ message: "You must accept the terms" }) }),
   acceptPrivacy: z.literal(true, { errorMap: () => ({ message: "You must accept the privacy policy" }) }),
   marketingOptIn: z.boolean().default(false),
+  // Cloudflare Turnstile response token from the widget in RegisterForm.tsx.
+  // Optional at the schema level so requests still parse before the keys are
+  // configured — verifyTurnstileToken() is what actually enforces this.
+  turnstileToken: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -27,6 +32,15 @@ export async function POST(req: NextRequest) {
   }
   const d = parsed.data;
   const email = d.email.toLowerCase().trim();
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? null;
+
+  // Anti-bot check runs before any DB writes. See lib/turnstile.ts for the
+  // fail-open/fail-closed rules — this is a no-op until TURNSTILE_SECRET_KEY
+  // is set in the environment.
+  const turnstileCheck = await verifyTurnstileToken(d.turnstileToken, ip);
+  if (!turnstileCheck.ok) {
+    return NextResponse.json({ error: turnstileCheck.reason }, { status: 400 });
+  }
 
   if (d.role === "CANDIDATE" && (!d.firstName || !d.lastName)) {
     return NextResponse.json({ error: "First and last name are required" }, { status: 400 });
@@ -38,7 +52,6 @@ export async function POST(req: NextRequest) {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
 
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? null;
   const ua = req.headers.get("user-agent");
   const passwordHash = await bcrypt.hash(d.password, 12);
 
