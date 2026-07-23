@@ -53,6 +53,14 @@ const schema = z.object({
   willingToRelocate: z.boolean().optional(),
   siteExperience: z.array(z.nativeEnum(SiteExperience)).max(8).optional(),
   commodities: z.array(z.nativeEnum(Commodity)).max(13).optional(),
+  // Self-declared, not verified — see ProfileForm.tsx's disclaimer copy.
+  // Codes come from the fixed src/lib/countries.ts list via CountryMultiSelect,
+  // but still normalized/deduped here in case of stale client state.
+  rightToWorkCountries: z
+    .array(z.string().length(2))
+    .max(60)
+    .transform((codes) => Array.from(new Set(codes.map((c) => c.toUpperCase()))))
+    .optional(),
   visibility: z.nativeEnum(ProfileVisibility).optional(),
   photoKey: z.string().nullable().optional(),
   resumeKey: z.string().nullable().optional(),
