@@ -127,9 +127,11 @@ export default async function CandidateDashboard() {
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {matchedJobs.map(({ job, score, reasons }) => (
-              <div key={job.id} className="relative">
-                <span className="absolute right-3 top-3 z-10 tag bg-patina/15 text-patina">{score}% match</span>
-                <JobCard job={job} />
+              <div key={job.id}>
+                <JobCard
+                  job={job}
+                  topRight={<span className="tag whitespace-nowrap bg-patina/15 text-patina">{score}% match</span>}
+                />
                 {reasons.length > 0 && (
                   <p className="mt-1 px-1 text-xs text-ink/50">{reasons.join(" · ")}</p>
                 )}
