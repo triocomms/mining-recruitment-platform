@@ -11,9 +11,10 @@ const schema = z.object({
 });
 
 /**
- * Candidates who have applied to a company may leave (or update) one review.
- * Reviews are moderated through the standard report pipeline: an upheld
- * report hides the review.
+ * Candidates who've reached interview stage on at least one application to a
+ * company may leave (or update) one review — not just anyone who applied,
+ * so every review reflects a real hiring interaction. Reviews are moderated
+ * through the standard report pipeline: an upheld report hides the review.
  */
 export async function POST(req: NextRequest) {
   const user = await requireUser("CANDIDATE");
@@ -28,13 +29,13 @@ export async function POST(req: NextRequest) {
   const candidate = await prisma.candidateProfile.findUnique({ where: { userId: user.id } });
   if (!candidate) return NextResponse.json({ error: "Complete your profile first" }, { status: 400 });
 
-  const hasApplied = await prisma.application.findFirst({
-    where: { candidateId: candidate.id, job: { companyId: d.companyId } },
+  const interviewed = await prisma.application.findFirst({
+    where: { candidateId: candidate.id, job: { companyId: d.companyId }, interviewedAt: { not: null } },
     select: { id: true },
   });
-  if (!hasApplied) {
+  if (!interviewed) {
     return NextResponse.json(
-      { error: "You can only review companies you have applied to" },
+      { error: "You can only review companies you've reached interview stage with" },
       { status: 403 }
     );
   }
