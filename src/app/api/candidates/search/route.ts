@@ -67,6 +67,7 @@ export async function GET(req: NextRequest) {
       fifoPreference: true,
       commodities: true,
       siteExperience: true,
+      rightToWorkCountries: true,
       certifications: { select: { name: true, expiresAt: true, verificationStatus: true }, take: 6 },
       employmentHistory: {
         where: { verificationStatus: "VERIFIED" },
