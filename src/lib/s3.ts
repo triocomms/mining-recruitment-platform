@@ -21,6 +21,7 @@ export const UPLOAD_RULES = {
   logo: { maxBytes: 3 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp", "image/svg+xml"] },
   kyb: { maxBytes: 10 * 1024 * 1024, types: ["application/pdf", "image/jpeg", "image/png"] },
   certification: { maxBytes: 8 * 1024 * 1024, types: ["application/pdf", "image/jpeg", "image/png"] },
+  employment: { maxBytes: 8 * 1024 * 1024, types: ["application/pdf", "image/jpeg", "image/png"] },
   blogCover: { maxBytes: 6 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp"] },
   blogImage: { maxBytes: 6 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp"] },
   companyMedia: { maxBytes: 6 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp"] },

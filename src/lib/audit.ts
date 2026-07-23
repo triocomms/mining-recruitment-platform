@@ -4,7 +4,15 @@ import { prisma } from "./prisma";
  * Admin audit trail. Every privileged admin action writes one entry.
  * Failures are logged but never block the underlying action.
  */
-export type AuditTargetType = "JOB" | "USER" | "COMPANY" | "REPORT" | "BLOG_POST" | "PAYMENT";
+export type AuditTargetType =
+  | "JOB"
+  | "USER"
+  | "COMPANY"
+  | "REPORT"
+  | "BLOG_POST"
+  | "PAYMENT"
+  | "CERTIFICATION"
+  | "EMPLOYMENT_HISTORY";
 
 export async function logAdminAction(
   adminId: string,
