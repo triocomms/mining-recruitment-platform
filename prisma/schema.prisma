@@ -180,6 +180,7 @@ model CandidateProfile {
   updatedAt         DateTime          @updatedAt
 
   certifications    Certification[]
+  employmentHistory EmploymentHistory[]
   applications      Application[]
   bookmarks         JobBookmark[]
   followedCompanies CompanyFollow[]
@@ -228,6 +229,39 @@ model Certification {
   referenceNo String?
   expiresAt   DateTime?
   documentKey String? // optional scan upload
+  // Set server-side only, never accepted from the candidate directly.
+  // Attaching a new/changed document moves this to PENDING; an admin then
+  // approves or rejects it, same flow as company KYB.
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  verifiedAt         DateTime?
+  verificationNotes  String? // admin notes, e.g. reason for rejection
+
+  @@index([verificationStatus])
+}
+
+// Structured, per-role work history — separate from the coarse
+// siteExperience/commodities tags on CandidateProfile. Optional proof
+// upload (payslip, reference letter) can be verified by an admin, same
+// UNVERIFIED → PENDING → VERIFIED/REJECTED flow as Certification and KYB.
+model EmploymentHistory {
+  id          String           @id @default(cuid())
+  candidateId String
+  candidate   CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  companyName String
+  title       String
+  siteType    SiteExperience?
+  commodity   Commodity?
+  startDate   DateTime
+  endDate     DateTime? // null = current role
+  documentKey String?
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  verifiedAt         DateTime?
+  verificationNotes  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([candidateId])
+  @@index([verificationStatus])
 }
 
 // ─────────────────────────────────────────────── Employers & companies
@@ -384,6 +418,10 @@ model Application {
   coverNote   String? // candidate's own note, set at application time
   notes       String? // employer's private hiring notes — never shown to the candidate
   resumeKey   String? // snapshot at time of application
+  // Set once, the first time status moves to INTERVIEW or OFFER — kept even
+  // if later rejected, so review eligibility reflects "ever reached
+  // interview stage" rather than the current (possibly overwritten) status.
+  interviewedAt DateTime?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
@@ -589,7 +627,7 @@ model AdminAuditLog {
   adminId    String
   admin      User     @relation("AuditAdmin", fields: [adminId], references: [id], onDelete: Cascade)
   action     String // e.g. "JOB_APPROVE", "USER_SUSPEND", "REFUND_ISSUE"
-  targetType String // "JOB" | "USER" | "COMPANY" | "REPORT" | "BLOG_POST" | "PAYMENT"
+  targetType String // "JOB" | "USER" | "COMPANY" | "REPORT" | "BLOG_POST" | "PAYMENT" | "CERTIFICATION" | "EMPLOYMENT_HISTORY"
   targetId   String
   notes      String?
   createdAt  DateTime @default(now())
