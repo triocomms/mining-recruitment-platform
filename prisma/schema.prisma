@@ -179,6 +179,12 @@ model CandidateProfile {
   availableFrom     DateTime?
   siteExperience    SiteExperience[]
   commodities       Commodity[]
+  // Self-declared right-to-work countries (ISO 3166-1 alpha-2 codes), picked
+  // from the fixed list in src/lib/countries.ts so entries stay uniform.
+  // Not verified by the platform — see ProfileForm.tsx for the disclaimer
+  // shown to candidates, and CandidateSearch.tsx for how it's surfaced to
+  // employers as a signal only, pointing at Certifications & Tickets for proof.
+  rightToWorkCountries String[]       @default([])
   updatedAt         DateTime          @updatedAt
 
   certifications    Certification[]
