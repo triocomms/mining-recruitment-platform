@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 const SITE_OPTIONS = [
   ["OPEN_PIT", "Open pit"],
@@ -330,7 +331,7 @@ export function ProfileForm(props: {
 
       <div>
         <label className="label" htmlFor="summary">Summary</label>
-        <textarea id="summary" className="field min-h-32" maxLength={4000} value={f.summary} onChange={(e) => setF({ ...f, summary: e.target.value })} />
+        <RichTextEditor id="summary" className="min-h-32" maxLength={4000} value={f.summary} onChange={(v) => setF({ ...f, summary: v })} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
