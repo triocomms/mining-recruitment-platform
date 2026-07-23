@@ -25,8 +25,8 @@ export default async function CandidateProfilePage() {
       </p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        <FileUpload kind="resume" label="Resume / CV (PDF)" accept=".pdf,.doc,.docx" field="resumeKey" endpoint="/api/profile" currentKey={profile.resumeKey} />
-        <FileUpload kind="coverLetter" label="Cover letter" accept=".pdf,.doc,.docx" field="coverLetterKey" endpoint="/api/profile" currentKey={profile.coverLetterKey} />
+        <FileUpload kind="resume" label="Resume / CV (PDF)" accept=".pdf,.doc,.docx" field="resumeKey" nameField="resumeName" endpoint="/api/profile" currentKey={profile.resumeKey} currentName={profile.resumeName} />
+        <FileUpload kind="coverLetter" label="Cover letter" accept=".pdf,.doc,.docx" field="coverLetterKey" nameField="coverLetterName" endpoint="/api/profile" currentKey={profile.coverLetterKey} currentName={profile.coverLetterName} />
         <FileUpload kind="photo" label="Profile photo" accept="image/*" field="photoKey" endpoint="/api/profile" currentKey={profile.photoKey} />
       </div>
 
