@@ -56,6 +56,9 @@ export default async function ApplicantsPage({ params }: { params: { id: string 
             notes: a.notes ?? "",
             coverNote: a.coverNote,
             resumeKey: a.resumeKey,
+            resumeName: a.resumeName,
+            coverLetterKey: a.coverLetterKey,
+            coverLetterName: a.coverLetterName,
             appliedAgo: timeAgo(a.createdAt),
             candidate: {
               name: `${a.candidate.firstName} ${a.candidate.lastName}`,
