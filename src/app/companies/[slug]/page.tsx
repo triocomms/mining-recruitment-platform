@@ -54,17 +54,19 @@ export default async function CompanyPage({ params }: { params: { slug: string }
       : null;
   const videoEmbedUrl = company.videoUrl ? toVideoEmbedUrl(company.videoUrl) : null;
 
-  // Can the signed-in candidate review this company? (must have applied)
+  // Can the signed-in candidate review this company? Must have reached
+  // interview stage on at least one application — not just applied — so
+  // every review reflects an actual hiring interaction, not a drive-by.
   const session = await auth();
   let reviewerState: { eligible: boolean; existing: { rating: number; title: string | null; body: string } | null } = { eligible: false, existing: null };
   if (session?.user.role === "CANDIDATE") {
     const candidate = await prisma.candidateProfile.findUnique({ where: { userId: session.user.id } });
     if (candidate) {
-      const applied = await prisma.application.findFirst({
-        where: { candidateId: candidate.id, job: { companyId: company.id } },
+      const interviewed = await prisma.application.findFirst({
+        where: { candidateId: candidate.id, job: { companyId: company.id }, interviewedAt: { not: null } },
         select: { id: true },
       });
-      if (applied) {
+      if (interviewed) {
         const existing = await prisma.companyReview.findUnique({
           where: { companyId_candidateId: { companyId: company.id, candidateId: candidate.id } },
           select: { rating: true, title: true, body: true },
@@ -171,14 +173,14 @@ export default async function CompanyPage({ params }: { params: { slug: string }
         </h2>
         {avgRating !== null && (
           <p className="mt-1 text-sm text-ink/60">
-            <span className="text-oregold">★ {avgRating.toFixed(1)}</span> average from candidates who applied here.
+            <span className="text-oregold">★ {avgRating.toFixed(1)}</span> average from candidates who interviewed here.
           </p>
         )}
         <div className="mt-3 grid gap-4 lg:grid-cols-[1fr_320px]">
           <div>
             {company.reviews.length === 0 ? (
               <p className="card text-sm text-ink/60">
-                No reviews yet. Candidates who have applied to {company.name} can leave the first one.
+                No reviews yet. Candidates who've interviewed with {company.name} can leave the first one.
               </p>
             ) : (
               <ul className="space-y-3">
@@ -203,8 +205,8 @@ export default async function CompanyPage({ params }: { params: { slug: string }
               <ReviewForm companyId={company.id} existing={reviewerState.existing} />
             ) : (
               <p className="card text-xs text-ink/50">
-                Reviews are limited to candidates who have applied to this company, so every rating
-                reflects real hiring experience.
+                Reviews are limited to candidates who've reached at least an interview stage with this
+                company, so every rating reflects a real hiring experience — not just an application.
               </p>
             )}
           </div>
