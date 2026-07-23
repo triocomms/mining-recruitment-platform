@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Commodity, FifoPreference, ProfileVisibility, SiteExperience } from "@prisma/client";
+import { Commodity, FifoPreference, ProfileVisibility, SiteExperience, VerificationStatus } from "@prisma/client";
 
 /**
  * Certifications and employment history are both saved as a whole-array
@@ -16,7 +16,7 @@ import { Commodity, FifoPreference, ProfileVisibility, SiteExperience } from "@p
  */
 function nextVerification<T extends Record<string, unknown>>(
   incoming: T & { documentKey?: string | null },
-  existing: (Partial<T> & { documentKey: string | null; verificationStatus: string; verifiedAt: Date | null; verificationNotes: string | null })[],
+  existing: (Partial<T> & { documentKey: string | null; verificationStatus: VerificationStatus; verifiedAt: Date | null; verificationNotes: string | null })[],
   fieldsToCompare: (keyof T)[]
 ) {
   if (!incoming.documentKey) {
