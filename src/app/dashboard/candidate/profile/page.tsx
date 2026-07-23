@@ -10,7 +10,10 @@ export default async function CandidateProfilePage() {
 
   const profile = await prisma.candidateProfile.findUnique({
     where: { userId: session.user.id },
-    include: { certifications: { orderBy: { name: "asc" } } },
+    include: {
+      certifications: { orderBy: { name: "asc" } },
+      employmentHistory: { orderBy: { startDate: "desc" } },
+    },
   });
   if (!profile) redirect("/login");
 
@@ -52,6 +55,17 @@ export default async function CandidateProfilePage() {
               referenceNo: c.referenceNo ?? "",
               expiresAt: c.expiresAt ? c.expiresAt.toISOString().slice(0, 10) : "",
               documentKey: c.documentKey,
+              verificationStatus: c.verificationStatus,
+            })),
+            employmentHistory: profile.employmentHistory.map((e) => ({
+              companyName: e.companyName,
+              title: e.title,
+              siteType: e.siteType ?? "",
+              commodity: e.commodity ?? "",
+              startDate: e.startDate.toISOString().slice(0, 10),
+              endDate: e.endDate ? e.endDate.toISOString().slice(0, 10) : "",
+              documentKey: e.documentKey,
+              verificationStatus: e.verificationStatus,
             })),
           }}
         />
