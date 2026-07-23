@@ -23,7 +23,7 @@ function nextVerification<T extends Record<string, unknown>>(
     return { verificationStatus: "UNVERIFIED" as const, verifiedAt: null, verificationNotes: null };
   }
   const match = existing.find((e) => e.documentKey === incoming.documentKey);
-  const unchanged = match && fieldsToCompare.every((f) => normalize(match[f]) === normalize(incoming[f]));
+  const unchanged = match && fieldsToCompare.every((f) => normalize(match[f as string]) === normalize(incoming[f]));
   if (match && unchanged) {
     return { verificationStatus: match.verificationStatus, verifiedAt: match.verifiedAt, verificationNotes: match.verificationNotes };
   }
