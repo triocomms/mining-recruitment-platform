@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { JobCard } from "@/components/JobCard";
 import { ReviewForm } from "@/components/ReviewForm";
+import { FollowCompanyButton } from "@/components/FollowCompanyButton";
 import { timeAgo, isUnresolvedCountry, toVideoEmbedUrl } from "@/lib/utils";
 import { renderMarkdown, stripMarkdown } from "@/lib/markdown";
 
@@ -59,6 +60,7 @@ export default async function CompanyPage({ params }: { params: { slug: string }
   // every review reflects an actual hiring interaction, not a drive-by.
   const session = await auth();
   let reviewerState: { eligible: boolean; existing: { rating: number; title: string | null; body: string } | null } = { eligible: false, existing: null };
+  let isFollowing = false;
   if (session?.user.role === "CANDIDATE") {
     const candidate = await prisma.candidateProfile.findUnique({ where: { userId: session.user.id } });
     if (candidate) {
@@ -73,6 +75,11 @@ export default async function CompanyPage({ params }: { params: { slug: string }
         });
         reviewerState = { eligible: true, existing };
       }
+      const follow = await prisma.companyFollow.findUnique({
+        where: { candidateId_companyId: { candidateId: candidate.id, companyId: company.id } },
+        select: { candidateId: true },
+      });
+      isFollowing = !!follow;
     }
   }
 
@@ -108,11 +115,14 @@ export default async function CompanyPage({ params }: { params: { slug: string }
           </p>
           </div>
         </div>
-        {company.website && (
-          <a href={company.website} target="_blank" rel="noreferrer nofollow" className="btn-ghost">
-            Website ↗
-          </a>
-        )}
+        <div className="flex items-center gap-2">
+          <FollowCompanyButton companyId={company.id} following={isFollowing} viewerRole={session?.user.role ?? null} />
+          {company.website && (
+            <a href={company.website} target="_blank" rel="noreferrer nofollow" className="btn-ghost">
+              Website ↗
+            </a>
+          )}
+        </div>
       </div>
 
       {company.description && (
