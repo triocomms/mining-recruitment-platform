@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { CountryMultiSelect } from "@/components/CountryMultiSelect";
 
 const SITE_OPTIONS = [
   ["OPEN_PIT", "Open pit"],
@@ -82,6 +83,7 @@ export function ProfileForm(props: {
     availableFrom: string;
     siteExperience: string[];
     commodities: string[];
+    rightToWorkCountries: string[];
     visibility: string;
     certifications: Cert[];
     employmentHistory: EmploymentEntry[];
@@ -222,6 +224,7 @@ export function ProfileForm(props: {
         availableFrom: f.availableFrom ? new Date(`${f.availableFrom}T00:00:00.000Z`).toISOString() : null,
         siteExperience: f.siteExperience,
         commodities: f.commodities,
+        rightToWorkCountries: f.rightToWorkCountries,
         visibility: f.visibility,
         certifications: f.certifications
           .filter((c) => c.name.trim())
@@ -396,6 +399,21 @@ export function ProfileForm(props: {
         />
         <p className="mt-1 text-xs text-ink/50">Leave blank if you're available immediately.</p>
       </div>
+
+      <fieldset>
+        <legend className="label">Right to work</legend>
+        <p className="mb-2 text-xs text-ink/50">
+          List every country where you currently hold the right to work. This is self-declared —
+          employers are expected to verify it themselves before confirming any offer, so it carries
+          more weight if you attach supporting documents (visa, passport, citizenship certificate) in
+          Certifications &amp; tickets below.
+        </p>
+        <CountryMultiSelect
+          value={f.rightToWorkCountries}
+          onChange={(codes) => setF({ ...f, rightToWorkCountries: codes })}
+          placeholder="Start typing a country, e.g. Australia…"
+        />
+      </fieldset>
 
       <fieldset>
         <legend className="label">Site experience</legend>

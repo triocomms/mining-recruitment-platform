@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { countryName } from "@/lib/countries";
 
 type Result = {
   id: string;
@@ -12,6 +13,7 @@ type Result = {
   fifoPreference: string | null;
   commodities: string[];
   siteExperience: string[];
+  rightToWorkCountries: string[];
   certifications: { name: string; verificationStatus?: string }[];
   employmentHistory: { companyName: string; title: string; startDate: string; endDate: string | null }[];
   matchScore?: number;
@@ -150,6 +152,14 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
                         {[r.countryCode, r.region].filter(Boolean).join(" · ")}
                         {r.fifoPreference && ` · ${pretty(r.fifoPreference)}`}
                       </p>
+                      {r.rightToWorkCountries.length > 0 && (
+                        <p
+                          className="mt-1 text-xs text-ink/50"
+                          title="Self-declared by the candidate, not verified by Orebridge — check their Certifications & tickets for supporting documents before proceeding."
+                        >
+                          🛂 Right to work: {r.rightToWorkCountries.map(countryName).join(", ")}
+                        </p>
+                      )}
                     </div>
                     <button className="btn-dark" onClick={() => { setOutreach({ id: r.id, name: r.firstName }); setSendState(null); }}>
                       Message
