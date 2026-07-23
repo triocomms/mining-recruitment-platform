@@ -32,6 +32,12 @@ model User {
   emailVerifiedAt      DateTime?
   verifyTokenHash      String?   @unique
   verifyTokenExpiresAt DateTime?
+  // Self-service email change (see AccountSettingsForm.tsx / api/account/email):
+  // the new address isn't applied to `email` until its confirmation link is
+  // clicked, so a mistyped address can never lock the owner out of sign-in.
+  pendingEmail                String?
+  pendingEmailTokenHash        String?   @unique
+  pendingEmailTokenExpiresAt   DateTime?
 
   candidate     CandidateProfile?
   company       Company?          @relation("CompanyOwner")
