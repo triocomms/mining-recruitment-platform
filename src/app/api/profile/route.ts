@@ -56,7 +56,9 @@ const schema = z.object({
   visibility: z.nativeEnum(ProfileVisibility).optional(),
   photoKey: z.string().nullable().optional(),
   resumeKey: z.string().nullable().optional(),
+  resumeName: z.string().trim().max(200).nullable().optional(),
   coverLetterKey: z.string().nullable().optional(),
+  coverLetterName: z.string().trim().max(200).nullable().optional(),
   availableFrom: z.string().datetime().nullable().optional(),
   certifications: z
     .array(
