@@ -16,7 +16,7 @@ import { Commodity, FifoPreference, ProfileVisibility, SiteExperience, Verificat
  */
 function nextVerification<T extends Record<string, unknown>>(
   incoming: T & { documentKey?: string | null },
-  existing: (Partial<T> & { documentKey: string | null; verificationStatus: VerificationStatus; verifiedAt: Date | null; verificationNotes: string | null })[],
+  existing: (Record<string, unknown> & { documentKey: string | null; verificationStatus: VerificationStatus; verifiedAt: Date | null; verificationNotes: string | null })[],
   fieldsToCompare: (keyof T)[]
 ) {
   if (!incoming.documentKey) {
