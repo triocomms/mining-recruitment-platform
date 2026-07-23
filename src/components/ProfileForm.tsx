@@ -416,7 +416,8 @@ export function ProfileForm(props: {
       </fieldset>
 
       <fieldset>
-        <legend className="label">Site experience (click to add/remove)</legend>
+        <legend className="label">Site experience</legend>
+        <p className="mb-2 text-xs text-ink/50">Click a tag to add or remove it.</p>
         <div className="flex flex-wrap gap-2">
           {SITE_OPTIONS.map(([value, label]) => (
             <button
@@ -432,7 +433,8 @@ export function ProfileForm(props: {
       </fieldset>
 
       <fieldset>
-        <legend className="label">Commodities (click to add/remove)</legend>
+        <legend className="label">Commodities</legend>
+        <p className="mb-2 text-xs text-ink/50">Click a tag to add or remove it.</p>
         <div className="flex flex-wrap gap-2">
           {COMMODITY_OPTIONS.map(([value, label]) => (
             <button
