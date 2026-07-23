@@ -48,6 +48,7 @@ export default async function CandidateProfilePage() {
             availableFrom: profile.availableFrom ? profile.availableFrom.toISOString().slice(0, 10) : "",
             siteExperience: profile.siteExperience,
             commodities: profile.commodities,
+            rightToWorkCountries: profile.rightToWorkCountries,
             visibility: profile.visibility,
             certifications: profile.certifications.map((c) => ({
               name: c.name,
