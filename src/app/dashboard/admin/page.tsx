@@ -3,17 +3,27 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { timeAgo, isUnresolvedCountry } from "@/lib/utils";
-import { AdminVerifyActions, AdminCurateActions, AdminJobReviewQueue, AdminSuspendForm, AdminUnsuspendButton, AdminReportActions, AdminRefundButton } from "@/components/AdminActions";
+import { AdminVerifyActions, AdminCredentialActions, AdminCurateActions, AdminJobReviewQueue, AdminSuspendForm, AdminUnsuspendButton, AdminReportActions, AdminRefundButton } from "@/components/AdminActions";
 
 export default async function AdminDashboard() {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
-  const [pendingCompanies, pendingJobs, openReports, posts, suspendedUsers, overagePurchases, activeSubscriptions, cronRuns, stats] = await Promise.all([
+  const [pendingCompanies, pendingCertifications, pendingEmploymentHistory, pendingJobs, openReports, posts, suspendedUsers, overagePurchases, activeSubscriptions, cronRuns, stats] = await Promise.all([
     prisma.company.findMany({
       where: { verificationStatus: "PENDING" },
       orderBy: { createdAt: "asc" },
       include: { owner: { select: { email: true } } },
+    }),
+    prisma.certification.findMany({
+      where: { verificationStatus: "PENDING" },
+      orderBy: { id: "asc" },
+      include: { candidate: { select: { firstName: true, lastName: true } } },
+    }),
+    prisma.employmentHistory.findMany({
+      where: { verificationStatus: "PENDING" },
+      orderBy: { createdAt: "asc" },
+      include: { candidate: { select: { firstName: true, lastName: true } } },
     }),
     prisma.job.findMany({
       where: { status: "PENDING_REVIEW" },
@@ -117,6 +127,84 @@ export default async function AdminDashboard() {
                     )}
                   </div>
                   <AdminVerifyActions companyId={c.id} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="font-display text-xl uppercase tracking-wide">
+          Certification verification queue ({pendingCertifications.length})
+        </h2>
+        {pendingCertifications.length === 0 ? (
+          <p className="card mt-3 text-sm text-ink/60">Queue is clear.</p>
+        ) : (
+          <ul className="mt-3 space-y-3">
+            {pendingCertifications.map((c) => (
+              <li key={c.id} className="card">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{c.name}</p>
+                    <p className="text-xs text-ink/60">
+                      {c.candidate.firstName} {c.candidate.lastName}
+                      {c.issuer ? ` · ${c.issuer}` : ""}
+                      {c.referenceNo ? ` · ref ${c.referenceNo}` : ""}
+                    </p>
+                    {c.documentKey ? (
+                      <a
+                        href={`/api/files?key=${encodeURIComponent(c.documentKey)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-block text-sm underline"
+                      >
+                        View scan →
+                      </a>
+                    ) : (
+                      <p className="mt-1 text-sm text-oxide">No document attached</p>
+                    )}
+                  </div>
+                  <AdminCredentialActions kind="CERTIFICATION" id={c.id} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="font-display text-xl uppercase tracking-wide">
+          Employment history verification queue ({pendingEmploymentHistory.length})
+        </h2>
+        {pendingEmploymentHistory.length === 0 ? (
+          <p className="card mt-3 text-sm text-ink/60">Queue is clear.</p>
+        ) : (
+          <ul className="mt-3 space-y-3">
+            {pendingEmploymentHistory.map((e) => (
+              <li key={e.id} className="card">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{e.title} — {e.companyName}</p>
+                    <p className="text-xs text-ink/60">
+                      {e.candidate.firstName} {e.candidate.lastName} ·{" "}
+                      {e.startDate.toISOString().slice(0, 10)} –{" "}
+                      {e.endDate ? e.endDate.toISOString().slice(0, 10) : "present"}
+                    </p>
+                    {e.documentKey ? (
+                      <a
+                        href={`/api/files?key=${encodeURIComponent(e.documentKey)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-block text-sm underline"
+                      >
+                        View proof →
+                      </a>
+                    ) : (
+                      <p className="mt-1 text-sm text-oxide">No document attached</p>
+                    )}
+                  </div>
+                  <AdminCredentialActions kind="EMPLOYMENT_HISTORY" id={e.id} />
                 </div>
               </li>
             ))}
