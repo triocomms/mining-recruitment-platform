@@ -4,6 +4,41 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Commodity, FifoPreference, ProfileVisibility, SiteExperience } from "@prisma/client";
 
+/**
+ * Certifications and employment history are both saved as a whole-array
+ * replace (see below), which would otherwise wipe out verificationStatus on
+ * every unrelated profile edit. Match each incoming row against what's
+ * already in the DB by documentKey — if it's the same document and nothing
+ * else about the claim changed, carry the existing verification forward
+ * (including VERIFIED). Otherwise this is either a brand-new upload or an
+ * edited claim on an old document, and either way needs a fresh admin look,
+ * so it goes to PENDING. No document at all means there's nothing to verify.
+ */
+function nextVerification<T extends Record<string, unknown>>(
+  incoming: T & { documentKey?: string | null },
+  existing: (Partial<T> & { documentKey: string | null; verificationStatus: string; verifiedAt: Date | null; verificationNotes: string | null })[],
+  fieldsToCompare: (keyof T)[]
+) {
+  if (!incoming.documentKey) {
+    return { verificationStatus: "UNVERIFIED" as const, verifiedAt: null, verificationNotes: null };
+  }
+  const match = existing.find((e) => e.documentKey === incoming.documentKey);
+  const unchanged = match && fieldsToCompare.every((f) => normalize(match[f]) === normalize(incoming[f]));
+  if (match && unchanged) {
+    return { verificationStatus: match.verificationStatus, verifiedAt: match.verifiedAt, verificationNotes: match.verificationNotes };
+  }
+  return { verificationStatus: "PENDING" as const, verifiedAt: null, verificationNotes: null };
+}
+
+/** Dates/nullish values compare unreliably by reference — flatten to a
+ *  comparable primitive so a Date and its equivalent ISO string still match. */
+function normalize(v: unknown): string {
+  if (v == null) return "";
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}T/.test(v)) return new Date(v).toISOString();
+  return String(v);
+}
+
 const schema = z.object({
   firstName: z.string().trim().min(1).max(60).optional(),
   lastName: z.string().trim().min(1).max(60).optional(),
@@ -35,6 +70,20 @@ const schema = z.object({
     )
     .max(40)
     .optional(),
+  employmentHistory: z
+    .array(
+      z.object({
+        companyName: z.string().trim().min(1).max(120),
+        title: z.string().trim().min(1).max(120),
+        siteType: z.nativeEnum(SiteExperience).nullable().optional(),
+        commodity: z.nativeEnum(Commodity).nullable().optional(),
+        startDate: z.string().datetime(),
+        endDate: z.string().datetime().nullable().optional(),
+        documentKey: z.string().nullable().optional(),
+      })
+    )
+    .max(20)
+    .optional(),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -43,7 +92,7 @@ export async function PATCH(req: NextRequest) {
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
-  const { certifications, visibility, availableFrom, ...fields } = parsed.data;
+  const { certifications, employmentHistory, visibility, availableFrom, ...fields } = parsed.data;
 
   const candidate = await prisma.candidateProfile.findUnique({ where: { userId: user.id } });
   if (!candidate) return NextResponse.json({ error: "No profile" }, { status: 400 });
@@ -61,6 +110,11 @@ export async function PATCH(req: NextRequest) {
     });
   }
 
+  const [existingCerts, existingEmployment] = await Promise.all([
+    certifications ? prisma.certification.findMany({ where: { candidateId: candidate.id } }) : Promise.resolve([]),
+    employmentHistory ? prisma.employmentHistory.findMany({ where: { candidateId: candidate.id } }) : Promise.resolve([]),
+  ]);
+
   await prisma.candidateProfile.update({
     where: { userId: user.id },
     data: {
@@ -77,6 +131,24 @@ export async function PATCH(req: NextRequest) {
                 referenceNo: c.referenceNo,
                 expiresAt: c.expiresAt ? new Date(c.expiresAt) : null,
                 documentKey: c.documentKey,
+                ...nextVerification(c, existingCerts, ["name", "issuer", "referenceNo", "expiresAt"]),
+              })),
+            },
+          }
+        : {}),
+      ...(employmentHistory
+        ? {
+            employmentHistory: {
+              deleteMany: {},
+              create: employmentHistory.map((e) => ({
+                companyName: e.companyName,
+                title: e.title,
+                siteType: e.siteType ?? null,
+                commodity: e.commodity ?? null,
+                startDate: new Date(e.startDate),
+                endDate: e.endDate ? new Date(e.endDate) : null,
+                documentKey: e.documentKey,
+                ...nextVerification(e, existingEmployment, ["companyName", "title", "siteType", "commodity", "startDate", "endDate"]),
               })),
             },
           }
