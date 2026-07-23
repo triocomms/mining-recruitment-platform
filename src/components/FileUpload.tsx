@@ -11,13 +11,15 @@ export function FileUpload(props: {
   label: string;
   accept: string;
   field: string; // e.g. "resumeKey"
+  nameField?: string; // e.g. "resumeName" — also persists the original filename
   endpoint: string; // e.g. "/api/profile"
   currentKey?: string | null;
+  currentName?: string | null;
 }) {
   const [state, setState] = useState<"idle" | "uploading" | "done" | "error">(
     props.currentKey ? "done" : "idle"
   );
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(props.currentName ?? null);
 
   async function onChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -40,7 +42,7 @@ export function FileUpload(props: {
       const save = await fetch(props.endpoint, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [props.field]: key }),
+        body: JSON.stringify({ [props.field]: key, ...(props.nameField ? { [props.nameField]: file.name } : {}) }),
       });
       if (!save.ok) throw new Error("Could not save file to your profile");
       setState("done");

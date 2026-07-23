@@ -29,6 +29,9 @@ type Applicant = {
   notes: string;
   coverNote: string | null;
   resumeKey: string | null;
+  resumeName: string | null;
+  coverLetterKey: string | null;
+  coverLetterName: string | null;
   appliedAgo: string;
   candidate: {
     name: string;
@@ -108,7 +111,15 @@ function ApplicantRow({ app }: { app: Applicant }) {
               <>
                 {" · "}
                 <a href={`/api/files?key=${encodeURIComponent(app.resumeKey)}`} target="_blank" rel="noreferrer" className="underline">
-                  Resume
+                  {app.resumeName ?? "Resume"}
+                </a>
+              </>
+            )}
+            {app.coverLetterKey && (
+              <>
+                {" · "}
+                <a href={`/api/files?key=${encodeURIComponent(app.coverLetterKey)}`} target="_blank" rel="noreferrer" className="underline">
+                  {app.coverLetterName ?? "Cover letter"}
                 </a>
               </>
             )}
