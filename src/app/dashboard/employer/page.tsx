@@ -82,6 +82,7 @@ export default async function EmployerDashboard() {
           <Link href="/dashboard/posts" className="btn-ghost">My posts</Link>
           <Link href="/dashboard/messages" className="btn-ghost">Messages</Link>
           <Link href="/dashboard/employer/billing" className="btn-ghost">Billing</Link>
+          <Link href="/dashboard/settings" className="btn-ghost">Account settings</Link>
         </div>
       </div>
 
