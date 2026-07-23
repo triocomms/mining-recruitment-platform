@@ -50,7 +50,19 @@ export async function buildUserExport(userId: string) {
 export async function eraseUser(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { candidate: { include: { certifications: true } }, company: true },
+    include: {
+      candidate: {
+        include: {
+          certifications: true,
+          employmentHistory: true,
+          // Applications may carry a resume/cover letter uploaded just for
+          // that job, distinct from the profile's own default — those
+          // objects only ever exist here, so they'd otherwise leak in S3.
+          applications: { select: { resumeKey: true, coverLetterKey: true } },
+        },
+      },
+      company: true,
+    },
   });
   if (!user) return;
 
@@ -59,6 +71,11 @@ export async function eraseUser(userId: string) {
     const c = user.candidate;
     for (const k of [c.photoKey, c.resumeKey, c.coverLetterKey]) if (k) s3Keys.push(k);
     for (const cert of c.certifications) if (cert.documentKey) s3Keys.push(cert.documentKey);
+    for (const role of c.employmentHistory) if (role.documentKey) s3Keys.push(role.documentKey);
+    for (const app of c.applications) {
+      if (app.resumeKey) s3Keys.push(app.resumeKey);
+      if (app.coverLetterKey) s3Keys.push(app.coverLetterKey);
+    }
   }
   if (user.company?.logoKey) s3Keys.push(user.company.logoKey);
   if (user.company?.kybDocumentKey) s3Keys.push(user.company.kybDocumentKey);
@@ -67,9 +84,17 @@ export async function eraseUser(userId: string) {
   await prisma.$transaction(async (tx) => {
     if (user.candidate) {
       await tx.certification.deleteMany({ where: { candidateId: user.candidate.id } });
+      await tx.employmentHistory.deleteMany({ where: { candidateId: user.candidate.id } });
       await tx.application.updateMany({
         where: { candidateId: user.candidate.id },
-        data: { coverNote: null, resumeKey: null, status: "WITHDRAWN" },
+        data: {
+          coverNote: null,
+          resumeKey: null,
+          resumeName: null,
+          coverLetterKey: null,
+          coverLetterName: null,
+          status: "WITHDRAWN",
+        },
       });
       await tx.candidateProfile.update({
         where: { id: user.candidate.id },
@@ -83,7 +108,9 @@ export async function eraseUser(userId: string) {
           region: null,
           photoKey: null,
           resumeKey: null,
+          resumeName: null,
           coverLetterKey: null,
+          coverLetterName: null,
           visibility: "PRIVATE",
         },
       });
@@ -106,6 +133,7 @@ export async function eraseUser(userId: string) {
     });
   });
 
-  // Best-effort object storage cleanup after the DB commit.
-  await Promise.allSettled(s3Keys.map((k) => deleteObject(k)));
+  // Best-effort object storage cleanup after the DB commit. A profile
+  // default and an application snapshot can point at the same key, so dedupe.
+  await Promise.allSettled(Array.from(new Set(s3Keys)).map((k) => deleteObject(k)));
 }
