@@ -10,7 +10,20 @@ import { ApplicationStatus } from "@prisma/client";
 const applySchema = z.object({
   jobId: z.string(),
   coverNote: z.string().trim().max(3000).optional(),
+  // Either the candidate's profile default, or a one-off file uploaded just
+  // for this application (see ApplyPanel.tsx) — both are snapshotted onto
+  // the Application row and never touch the candidate's profile.
+  resumeKey: z.string().optional(),
+  resumeName: z.string().trim().max(200).optional(),
+  coverLetterKey: z.string().nullable().optional(),
+  coverLetterName: z.string().trim().max(200).nullable().optional(),
 });
+
+/** Object keys are "{kind}/{ownerUserId}/{uuid}" — refuse to snapshot a key
+ *  the caller doesn't own (see also the same check in /api/files). */
+function ownsKey(key: string, userId: string) {
+  return key.split("/")[1] === userId;
+}
 
 export async function POST(req: NextRequest) {
   const user = await requireUser("CANDIDATE");
@@ -18,15 +31,33 @@ export async function POST(req: NextRequest) {
 
   const candidate = await prisma.candidateProfile.findUnique({ where: { userId: user.id } });
   if (!candidate) return NextResponse.json({ error: "Complete your profile first" }, { status: 400 });
-  if (!candidate.resumeKey) {
-    return NextResponse.json({ error: "Upload a resume before applying", action: "UPLOAD_RESUME" }, { status: 400 });
-  }
 
   const parsed = applySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  const d = parsed.data;
+
+  if (d.resumeKey && !ownsKey(d.resumeKey, user.id)) {
+    return NextResponse.json({ error: "Invalid resume" }, { status: 403 });
+  }
+  if (d.coverLetterKey && !ownsKey(d.coverLetterKey, user.id)) {
+    return NextResponse.json({ error: "Invalid cover letter" }, { status: 403 });
+  }
+
+  // resumeKey/resumeName travel together: a tailored upload brings its own
+  // name, a profile default's name comes from the profile.
+  const effectiveResumeKey = d.resumeKey ?? candidate.resumeKey;
+  const effectiveResumeName = d.resumeKey ? d.resumeName ?? null : candidate.resumeName;
+  if (!effectiveResumeKey) {
+    return NextResponse.json({ error: "Upload a resume before applying", action: "UPLOAD_RESUME" }, { status: 400 });
+  }
+  // coverLetterKey is fully optional and explicit: undefined means "not
+  // sent" (old clients / no cover letter chosen), so fall back to nothing
+  // rather than silently reusing the profile's cover letter.
+  const effectiveCoverLetterKey = d.coverLetterKey ?? null;
+  const effectiveCoverLetterName = effectiveCoverLetterKey ? d.coverLetterName ?? null : null;
 
   const job = await prisma.job.findUnique({
-    where: { id: parsed.data.jobId },
+    where: { id: d.jobId },
     include: { company: { select: { name: true, owner: { select: { email: true } } } } },
   });
   if (!job || job.status !== "PUBLISHED") {
@@ -38,8 +69,11 @@ export async function POST(req: NextRequest) {
       data: {
         jobId: job.id,
         candidateId: candidate.id,
-        coverNote: parsed.data.coverNote,
-        resumeKey: candidate.resumeKey, // snapshot
+        coverNote: d.coverNote,
+        resumeKey: effectiveResumeKey, // snapshot
+        resumeName: effectiveResumeName,
+        coverLetterKey: effectiveCoverLetterKey,
+        coverLetterName: effectiveCoverLetterName,
       },
     });
     // Best-effort — an employer not being notified shouldn't fail the
