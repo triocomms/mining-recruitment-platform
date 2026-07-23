@@ -139,7 +139,7 @@ export default async function EmployerDashboard() {
       </section>
 
       <div className="mt-8 grid gap-8 md:grid-cols-3">
-        <section className="md:col-span-2">
+        <section className="min-w-0 md:col-span-2">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-xl uppercase tracking-wide">Recent jobs</h2>
             <Link href="/dashboard/employer/jobs" className="text-sm underline">Manage all →</Link>
@@ -190,7 +190,7 @@ export default async function EmployerDashboard() {
           )}
         </section>
 
-        <aside className="space-y-8">
+        <aside className="min-w-0 space-y-8">
           <div>
             <h2 className="font-display text-xl uppercase tracking-wide">Bookmarked candidates</h2>
             {company.bookmarks.length === 0 ? (
