@@ -24,19 +24,31 @@ body {
   );
 }
 
-.btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-card px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hivis;
-}
-.btn-primary { @apply btn bg-hivis text-ink hover:bg-hivis-deep; }
-.btn-dark { @apply btn bg-ink text-bone hover:bg-ink-soft; }
-.btn-ghost { @apply btn border border-ink/20 bg-transparent hover:border-ink/50; }
+/* Wrapped in @layer components so Tailwind slots these into the components
+   layer (which sits BEFORE the utilities layer in the cascade) regardless of
+   where this file places them relative to "@tailwind utilities" above. Without
+   this wrapper, these rules were literally appended after all utility classes
+   in the compiled CSS, so any conditional utility override applied alongside
+   one of these classes in JSX (e.g. `tag ${selected ? "bg-ink text-bone" : ""}`)
+   was silently losing the cascade to this rule's own background/color — the
+   visible symptom was toggles like Site experience / Commodities never
+   appearing to change state when clicked, even though the underlying React
+   state and className were updating correctly. */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-card px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hivis;
+  }
+  .btn-primary { @apply btn bg-hivis text-ink hover:bg-hivis-deep; }
+  .btn-dark { @apply btn bg-ink text-bone hover:bg-ink-soft; }
+  .btn-ghost { @apply btn border border-ink/20 bg-transparent hover:border-ink/50; }
 
-.field {
-  @apply w-full rounded-card border border-ink/20 bg-white px-3.5 py-3 text-sm placeholder:text-ink/40 focus:border-hivis focus:outline-none focus:ring-1 focus:ring-hivis;
+  .field {
+    @apply w-full rounded-card border border-ink/20 bg-white px-3.5 py-3 text-sm placeholder:text-ink/40 focus:border-hivis focus:outline-none focus:ring-1 focus:ring-hivis;
+  }
+  .label { @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink/60; }
+  .card { @apply rounded-card border border-ink/10 bg-white p-4 sm:p-5; }
+  .tag { @apply inline-flex items-center rounded-full bg-ink/5 px-2.5 py-1 text-xs font-medium text-ink/70; }
 }
-.label { @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink/60; }
-.card { @apply rounded-card border border-ink/10 bg-white p-4 sm:p-5; }
-.tag { @apply inline-flex items-center rounded-full bg-ink/5 px-2.5 py-1 text-xs font-medium text-ink/70; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
