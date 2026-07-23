@@ -54,3 +54,63 @@ export async function verifyEmailToken(raw: string): Promise<string | null> {
   });
   return user.email;
 }
+
+/**
+ * Self-service email change (see api/account/email/route.ts). The requested
+ * address is held in `pendingEmail` and only promoted to `email` once its
+ * confirmation link is clicked — this proves the account holder actually
+ * controls the new inbox and means a typo can't ever lock them out.
+ */
+export async function issueEmailChangeToken(userId: string, newEmail: string): Promise<string> {
+  const raw = crypto.randomBytes(32).toString("hex");
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      pendingEmail: newEmail,
+      pendingEmailTokenHash: hash(raw),
+      pendingEmailTokenExpiresAt: new Date(Date.now() + TOKEN_TTL_MS),
+    },
+  });
+  return raw;
+}
+
+export async function sendEmailChangeConfirmation(currentEmail: string, newEmail: string, raw: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const link = `${appUrl}/verify-email-change?token=${raw}`;
+
+  await sendEmail({
+    to: newEmail,
+    subject: "Confirm your new email — Orebridge",
+    body: `Confirm this address to finish updating your Orebridge login email:\n\n${link}\n\nThis link expires in 24 hours. Your login email stays as ${currentEmail} until you click it.\n\nIf you didn't request this, you can safely ignore this email — no change has been made.`,
+    template: "EMAIL_CHANGE_CONFIRM",
+  });
+
+  // Notify the current address too, so an attacker who guesses a candidate's
+  // password can't quietly redirect their login email without them noticing.
+  await sendEmail({
+    to: currentEmail,
+    subject: "Email change requested — Orebridge",
+    body: `Someone requested changing your Orebridge login email to ${newEmail}.\n\nIf this was you, check ${newEmail} for a confirmation link — nothing changes until it's clicked.\n\nIf this wasn't you, your password may be compromised — sign in and change it from Account settings immediately.`,
+    template: "EMAIL_CHANGE_NOTICE",
+  });
+}
+
+/** Consumes a raw token, promoting pendingEmail to email. Returns the new email, or null. */
+export async function confirmEmailChangeToken(raw: string): Promise<string | null> {
+  if (!raw || raw.length < 32) return null;
+  const user = await prisma.user.findUnique({ where: { pendingEmailTokenHash: hash(raw) } });
+  if (!user || !user.pendingEmail) return null;
+  if (!user.pendingEmailTokenExpiresAt || user.pendingEmailTokenExpiresAt < new Date()) return null;
+
+  const newEmail = user.pendingEmail;
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      email: newEmail,
+      pendingEmail: null,
+      pendingEmailTokenHash: null,
+      pendingEmailTokenExpiresAt: null,
+    },
+  });
+  return newEmail;
+}
