@@ -170,7 +170,9 @@ model CandidateProfile {
   visibility        ProfileVisibility @default(PRIVATE)
   photoKey          String? // S3 object keys, never public URLs
   resumeKey         String?
+  resumeName        String? // original filename, for display only
   coverLetterKey    String?
+  coverLetterName   String? // original filename, for display only
   yearsExperience   Int?
   fifoPreference    FifoPreference?
   willingToRelocate Boolean           @default(false)
@@ -417,7 +419,13 @@ model Application {
   status      ApplicationStatus @default(SUBMITTED)
   coverNote   String? // candidate's own note, set at application time
   notes       String? // employer's private hiring notes — never shown to the candidate
-  resumeKey   String? // snapshot at time of application
+  resumeKey       String? // snapshot at time of application — either the
+  // candidate's profile default, or a one-off resume uploaded just for this
+  // job (see /api/applications). Either way, this is exactly what the
+  // employer sees, and never changes the candidate's profile default.
+  resumeName      String? // original filename, for display only
+  coverLetterKey  String? // same snapshot pattern as resumeKey, optional
+  coverLetterName String? // original filename, for display only
   // Set once, the first time status moves to INTERVIEW or OFFER — kept even
   // if later rejected, so review eligibility reflects "ever reached
   // interview stage" rather than the current (possibly overwritten) status.
