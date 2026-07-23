@@ -1,6 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Script from "next/script";
+
+// Cloudflare's widget script injects a hidden `cf-turnstile-response` input
+// into whichever <form> the .cf-turnstile div sits inside, so the submit
+// handler below can read it straight out of FormData like any other field.
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 export function RegisterForm({ defaultRole }: { defaultRole: "CANDIDATE" | "EMPLOYER" }) {
   const [role, setRole] = useState<"CANDIDATE" | "EMPLOYER">(defaultRole);
@@ -23,6 +29,7 @@ export function RegisterForm({ defaultRole }: { defaultRole: "CANDIDATE" | "EMPL
       acceptTerms: f.get("acceptTerms") === "on",
       acceptPrivacy: f.get("acceptPrivacy") === "on",
       marketingOptIn: f.get("marketingOptIn") === "on",
+      turnstileToken: f.get("cf-turnstile-response") ? String(f.get("cf-turnstile-response")) : undefined,
     };
     const res = await fetch("/api/register", {
       method: "POST",
@@ -116,6 +123,13 @@ export function RegisterForm({ defaultRole }: { defaultRole: "CANDIDATE" | "EMPL
           <span>Email me job alerts and industry news (optional — change anytime)</span>
         </label>
       </fieldset>
+
+      {TURNSTILE_SITE_KEY && (
+        <>
+          <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
+          <div className="cf-turnstile" data-sitekey={TURNSTILE_SITE_KEY} data-theme="light" />
+        </>
+      )}
 
       {error && <p className="text-sm text-oxide" role="alert">{error}</p>}
       <button type="submit" disabled={busy} className="btn-primary w-full disabled:opacity-50">
