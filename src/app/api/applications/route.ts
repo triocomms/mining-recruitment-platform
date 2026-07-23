@@ -100,11 +100,17 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Candidates can only withdraw applications" }, { status: 403 });
   }
 
+  // Once an application ever reaches interview stage, that's remembered
+  // permanently (even if later rejected) — it's the bar for being allowed to
+  // leave a company review, and re-reviewing status shouldn't take that away.
+  const reachesInterviewStage = d.status === "INTERVIEW" || d.status === "OFFER";
+
   await prisma.application.update({
     where: { id: app.id },
     data: {
       ...(d.status !== undefined ? { status: d.status } : {}),
       ...(d.notes !== undefined ? { notes: d.notes || null } : {}),
+      ...(reachesInterviewStage && !app.interviewedAt ? { interviewedAt: new Date() } : {}),
     },
   });
 
