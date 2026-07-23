@@ -32,7 +32,37 @@ const COMMODITY_OPTIONS = [
 
 // expiresAt/availableFrom: "YYYY-MM-DD" or ""; documentKey: S3 key once an
 // upload completes, or null/empty if no scan has been attached.
-type Cert = { name: string; issuer: string; referenceNo: string; expiresAt: string; documentKey: string | null };
+// verificationStatus is server-controlled and read-only here — it's only
+// ever set by /api/profile based on whether the document changed, or by an
+// admin approving/rejecting it.
+type Cert = {
+  name: string;
+  issuer: string;
+  referenceNo: string;
+  expiresAt: string;
+  documentKey: string | null;
+  verificationStatus?: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
+};
+
+// startDate/endDate: "YYYY-MM-DD" or "" (blank endDate = current role).
+type EmploymentEntry = {
+  companyName: string;
+  title: string;
+  siteType: string;
+  commodity: string;
+  startDate: string;
+  endDate: string;
+  documentKey: string | null;
+  verificationStatus?: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
+};
+
+function VerificationBadge({ status }: { status?: string }) {
+  if (!status || status === "UNVERIFIED") return null;
+  if (status === "VERIFIED") return <span className="tag !bg-patina/15 !text-patina">✓ Verified</span>;
+  if (status === "PENDING") return <span className="tag !bg-hivis/15 !text-hivis-deep">Verification pending</span>;
+  if (status === "REJECTED") return <span className="tag !bg-oxide/10 !text-oxide">Verification declined</span>;
+  return null;
+}
 
 export function ProfileForm(props: {
   hasResume?: boolean;
@@ -53,6 +83,7 @@ export function ProfileForm(props: {
     commodities: string[];
     visibility: string;
     certifications: Cert[];
+    employmentHistory: EmploymentEntry[];
   };
 }) {
   const router = useRouter();
@@ -60,6 +91,7 @@ export function ProfileForm(props: {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [uploadingCert, setUploadingCert] = useState<number | null>(null);
+  const [uploadingEmployment, setUploadingEmployment] = useState<number | null>(null);
   const [parsingResume, setParsingResume] = useState(false);
   const [parseMsg, setParseMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -144,6 +176,29 @@ export function ProfileForm(props: {
     }
   }
 
+  async function uploadEmploymentDoc(i: number, file: File) {
+    setUploadingEmployment(i);
+    try {
+      const presign = await fetch("/api/uploads/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "employment", contentType: file.type }),
+      });
+      const { key, url, maxBytes, error } = await presign.json();
+      if (!presign.ok) throw new Error(error);
+      if (file.size > maxBytes) throw new Error(`File must be under ${Math.round(maxBytes / 1024 / 1024)} MB`);
+      const put = await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      if (!put.ok) throw new Error("Upload failed — try again");
+      const next = [...f.employmentHistory];
+      next[i] = { ...next[i], documentKey: key };
+      setF((prev) => ({ ...prev, employmentHistory: next }));
+    } catch (err: any) {
+      setMsg({ ok: false, text: err.message ?? "Upload failed" });
+    } finally {
+      setUploadingEmployment(null);
+    }
+  }
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -177,6 +232,17 @@ export function ProfileForm(props: {
             // datetime string (z.string().datetime()).
             expiresAt: c.expiresAt ? new Date(`${c.expiresAt}T00:00:00.000Z`).toISOString() : undefined,
             documentKey: c.documentKey || null,
+          })),
+        employmentHistory: f.employmentHistory
+          .filter((e) => e.companyName.trim() && e.title.trim() && e.startDate)
+          .map((e) => ({
+            companyName: e.companyName.trim(),
+            title: e.title.trim(),
+            siteType: e.siteType || null,
+            commodity: e.commodity || null,
+            startDate: new Date(`${e.startDate}T00:00:00.000Z`).toISOString(),
+            endDate: e.endDate ? new Date(`${e.endDate}T00:00:00.000Z`).toISOString() : null,
+            documentKey: e.documentKey || null,
           })),
       }),
     });
@@ -369,6 +435,9 @@ export function ProfileForm(props: {
           const expired = c.expiresAt && c.expiresAt < new Date().toISOString().slice(0, 10);
           return (
             <div key={i} className="mb-3 rounded-md border border-ink/10 p-2">
+              {c.verificationStatus && c.verificationStatus !== "UNVERIFIED" && (
+                <div className="mb-2"><VerificationBadge status={c.verificationStatus} /></div>
+              )}
               <div className="flex flex-wrap gap-2 sm:flex-nowrap">
                 <input
                   className="field flex-1 basis-full sm:basis-auto"
@@ -463,6 +532,150 @@ export function ProfileForm(props: {
           }
         >
           + Add ticket
+        </button>
+      </fieldset>
+
+      <fieldset>
+        <legend className="label">Work history</legend>
+        <p className="mb-2 text-xs text-ink/50">
+          Optional, but a verified role carries more weight with employers than the tags above alone.
+        </p>
+        {f.employmentHistory.map((entry, i) => (
+          <div key={i} className="mb-3 rounded-md border border-ink/10 p-2">
+            {entry.verificationStatus && entry.verificationStatus !== "UNVERIFIED" && (
+              <div className="mb-2"><VerificationBadge status={entry.verificationStatus} /></div>
+            )}
+            <div className="flex flex-wrap gap-2 sm:flex-nowrap">
+              <input
+                className="field flex-1 basis-full sm:basis-auto"
+                placeholder="Company name"
+                value={entry.companyName}
+                onChange={(e) => {
+                  const next = [...f.employmentHistory];
+                  next[i] = { ...next[i], companyName: e.target.value };
+                  setF({ ...f, employmentHistory: next });
+                }}
+              />
+              <input
+                className="field flex-1 basis-full sm:basis-auto"
+                placeholder="Job title"
+                value={entry.title}
+                onChange={(e) => {
+                  const next = [...f.employmentHistory];
+                  next[i] = { ...next[i], title: e.target.value };
+                  setF({ ...f, employmentHistory: next });
+                }}
+              />
+              <button
+                type="button"
+                className="btn-ghost px-3"
+                aria-label="Remove role"
+                onClick={() => setF({ ...f, employmentHistory: f.employmentHistory.filter((_, j) => j !== i) })}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2 sm:flex-nowrap">
+              <select
+                className="field flex-1 basis-full sm:basis-auto"
+                aria-label="Site type (optional)"
+                value={entry.siteType}
+                onChange={(e) => {
+                  const next = [...f.employmentHistory];
+                  next[i] = { ...next[i], siteType: e.target.value };
+                  setF({ ...f, employmentHistory: next });
+                }}
+              >
+                <option value="">Site type (optional)</option>
+                {SITE_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+              <select
+                className="field flex-1 basis-full sm:basis-auto"
+                aria-label="Commodity (optional)"
+                value={entry.commodity}
+                onChange={(e) => {
+                  const next = [...f.employmentHistory];
+                  next[i] = { ...next[i], commodity: e.target.value };
+                  setF({ ...f, employmentHistory: next });
+                }}
+              >
+                <option value="">Commodity (optional)</option>
+                {COMMODITY_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2 sm:flex-nowrap">
+              <input
+                type="date"
+                className="field flex-1 basis-full sm:basis-auto sm:w-40"
+                aria-label="Start date"
+                title="Start date"
+                value={entry.startDate}
+                onChange={(e) => {
+                  const next = [...f.employmentHistory];
+                  next[i] = { ...next[i], startDate: e.target.value };
+                  setF({ ...f, employmentHistory: next });
+                }}
+              />
+              <input
+                type="date"
+                className="field flex-1 basis-full sm:basis-auto sm:w-40"
+                aria-label="End date (leave blank if current)"
+                title="End date — leave blank if this is your current role"
+                value={entry.endDate}
+                onChange={(e) => {
+                  const next = [...f.employmentHistory];
+                  next[i] = { ...next[i], endDate: e.target.value };
+                  setF({ ...f, employmentHistory: next });
+                }}
+              />
+              <span className="shrink-0 text-xs text-ink/50">Leave end date blank if current</span>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2 sm:flex-nowrap">
+              <label className="btn-ghost shrink-0 cursor-pointer text-sm">
+                <input
+                  type="file"
+                  accept=".pdf,image/*"
+                  className="sr-only"
+                  disabled={uploadingEmployment === i}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (file) uploadEmploymentDoc(i, file);
+                  }}
+                />
+                {uploadingEmployment === i ? "Uploading…" : entry.documentKey ? "Replace proof" : "Attach proof (payslip, reference)"}
+              </label>
+              {entry.documentKey && (
+                <a
+                  href={`/api/files?key=${encodeURIComponent(entry.documentKey)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-patina underline"
+                >
+                  View
+                </a>
+              )}
+            </div>
+          </div>
+        ))}
+        <button
+          type="button"
+          className="btn-ghost"
+          onClick={() =>
+            setF({
+              ...f,
+              employmentHistory: [
+                ...f.employmentHistory,
+                { companyName: "", title: "", siteType: "", commodity: "", startDate: "", endDate: "", documentKey: null },
+              ],
+            })
+          }
+        >
+          + Add role
         </button>
       </fieldset>
 

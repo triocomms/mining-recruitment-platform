@@ -12,7 +12,8 @@ type Result = {
   fifoPreference: string | null;
   commodities: string[];
   siteExperience: string[];
-  certifications: { name: string }[];
+  certifications: { name: string; verificationStatus?: string }[];
+  employmentHistory: { companyName: string; title: string; startDate: string; endDate: string | null }[];
   matchScore?: number;
   matchReasons?: string[];
 };
@@ -140,6 +141,11 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
                         <p className="text-xs text-patina">{r.matchReasons.join(" · ")}</p>
                       )}
                       {r.headline && <p className="text-sm text-ink/70">{r.headline}</p>}
+                      {r.employmentHistory.length > 0 && (
+                        <p className="mt-0.5 text-xs text-patina">
+                          ✓ Verified: {r.employmentHistory[0].title} at {r.employmentHistory[0].companyName}
+                        </p>
+                      )}
                       <p className="mt-1 text-xs text-ink/50">
                         {[r.countryCode, r.region].filter(Boolean).join(" · ")}
                         {r.fifoPreference && ` · ${pretty(r.fifoPreference)}`}
@@ -152,7 +158,11 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
                   <div className="mt-2 flex flex-wrap gap-1">
                     {r.commodities.slice(0, 5).map((c) => <span key={c} className="tag">{pretty(c)}</span>)}
                     {r.siteExperience.slice(0, 5).map((s) => <span key={s} className="tag bg-ink/5">{pretty(s)}</span>)}
-                    {r.certifications.map((c) => <span key={c.name} className="tag bg-patina/10">{c.name}</span>)}
+                    {r.certifications.map((c) => (
+                      <span key={c.name} className="tag bg-patina/10">
+                        {c.verificationStatus === "VERIFIED" ? `✓ ${c.name}` : c.name}
+                      </span>
+                    ))}
                   </div>
                 </li>
               ))}
