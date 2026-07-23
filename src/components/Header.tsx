@@ -27,6 +27,7 @@ export async function Header() {
           {user ? (
             <>
               <NotificationBell />
+              <Link href="/dashboard/settings" className="hidden rounded px-2 py-1 hover:text-hivis sm:block">Account</Link>
               <SignOutButton />
               <Link href={dashboardHref} className="btn-primary !px-3 !py-1.5">Dashboard</Link>
             </>
