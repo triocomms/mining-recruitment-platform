@@ -5,7 +5,15 @@ import type { Job, Company } from "@prisma/client";
 const pretty = (s?: string | null) =>
   s ? s.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : null;
 
-export function JobCard({ job }: { job: Job & { company: Pick<Company, "name" | "slug" | "verificationStatus"> } }) {
+export function JobCard({
+  job,
+  topRight,
+}: {
+  job: Job & { company: Pick<Company, "name" | "slug" | "verificationStatus"> };
+  /** Optional extra badge (e.g. a match% score) rendered above the timestamp
+   * instead of overlapping it — see dashboard/candidate/page.tsx. */
+  topRight?: React.ReactNode;
+}) {
   const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency, job.salaryPeriod);
   return (
     <Link
@@ -13,7 +21,7 @@ export function JobCard({ job }: { job: Job & { company: Pick<Company, "name" | 
       className={`card block transition-shadow hover:shadow-md ${job.isPriority ? "border-l-4 border-l-hivis" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h3 className="font-display text-xl font-semibold leading-tight">{job.title}</h3>
           <p className="mt-0.5 text-sm text-ink/60">
             {job.company.name}
@@ -22,7 +30,12 @@ export function JobCard({ job }: { job: Job & { company: Pick<Company, "name" | 
             )}
           </p>
         </div>
-        {job.publishedAt && <span className="shrink-0 text-xs text-ink/40">{timeAgo(job.publishedAt)}</span>}
+        {(topRight || job.publishedAt) && (
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            {topRight}
+            {job.publishedAt && <span className="text-xs text-ink/40">{timeAgo(job.publishedAt)}</span>}
+          </div>
+        )}
       </div>
       <div className="mt-3 flex flex-wrap gap-1.5">
         <span className="tag">{formatLocation(job.city, job.region, job.countryCode)}</span>

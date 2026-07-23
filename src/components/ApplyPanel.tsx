@@ -160,7 +160,7 @@ export function ApplyPanel(props: {
   if (!props.viewerRole) {
     return (
       <div className="card space-y-3">
-        <p className="text-sm text-ink/70">Sign in as a candidate to apply and bookmark roles.</p>
+        <p className="text-sm text-ink/70">Sign in as a candidate to apply and save roles.</p>
         <a href="/register?role=candidate" className="btn-primary w-full">Create free profile</a>
         <a href="/login" className="btn-ghost w-full">Sign in</a>
       </div>
@@ -252,7 +252,7 @@ export function ApplyPanel(props: {
       )}
       {error && <p className="text-sm text-oxide">{error}</p>}
       <button onClick={toggleBookmark} className="btn-ghost w-full">
-        {bookmarked ? "★ Bookmarked" : "☆ Bookmark job"}
+        {bookmarked ? "★ Saved" : "☆ Save job"}
       </button>
       <p className="text-xs text-ink/50">Your resume is shared only with this employer when you apply.</p>
     </div>
