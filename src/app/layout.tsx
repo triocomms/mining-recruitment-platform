@@ -34,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <a href="/news" className="hover:text-ink">Industry news</a>
               <a href="/pricing" className="hover:text-ink">Employer pricing</a>
               <a href="/privacy" className="hover:text-ink">Privacy &amp; your data</a>
+              <a href="/terms" className="hover:text-ink">Terms of Service</a>
             </nav>
           </div>
         </footer>
