@@ -277,6 +277,14 @@ export default async function CandidateDashboard() {
           </div>
 
           <div className="card border-ink/10 text-sm">
+            <p className="font-semibold">Account settings</p>
+            <p className="mt-1 text-ink/60">Change the email or password you sign in with.</p>
+            <Link href="/dashboard/settings" className="mt-2 inline-block underline">
+              Account settings →
+            </Link>
+          </div>
+
+          <div className="card border-ink/10 text-sm">
             <p className="font-semibold">Your data, your call</p>
             <p className="mt-1 text-ink/60">Export or delete everything we hold about you.</p>
             <Link href="/dashboard/candidate/privacy" className="mt-2 inline-block underline">
