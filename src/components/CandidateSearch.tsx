@@ -18,6 +18,7 @@ type Result = {
   employmentHistory: { companyName: string; title: string; startDate: string; endDate: string | null }[];
   matchScore?: number;
   matchReasons?: string[];
+  promoted?: boolean;
 };
 
 function pretty(v: string) {
@@ -104,7 +105,7 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
             onChange={(e) => setJobId(e.target.value)}
             aria-label="Rank candidates against one of your job ads"
           >
-            <option value="">No ranking — newest first</option>
+            <option value="">No ranking -- newest first</option>
             {props.jobs.map((j) => (
               <option key={j.id} value={j.id}>Rank against: {j.title}</option>
             ))}
@@ -138,6 +139,11 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
                             {r.matchScore}% match
                           </span>
                         )}
+                        {r.promoted && (
+                          <span className="tag ml-2 bg-hivis/20 text-hivis-deep" title="This candidate has a paid promotion active">
+                            🚀 Promoted
+                          </span>
+                        )}
                       </p>
                       {r.matchReasons && r.matchReasons.length > 0 && (
                         <p className="text-xs text-patina">{r.matchReasons.join(" · ")}</p>
@@ -155,7 +161,7 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
                       {r.rightToWorkCountries.length > 0 && (
                         <p
                           className="mt-1 text-xs text-ink/50"
-                          title="Self-declared by the candidate, not verified by FiFoDiDo — check their Certifications & tickets for supporting documents before proceeding."
+                          title="Self-declared by the candidate, not verified by FiFoDiDo -- check their Certifications & tickets for supporting documents before proceeding."
                         >
                           🛂 Right to work: {r.rightToWorkCountries.map(countryName).join(", ")}
                         </p>
@@ -190,13 +196,13 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
           <form onSubmit={sendOutreach} className="card w-full max-w-md bg-white">
             <h3 className="font-display text-xl uppercase tracking-wide">Message {outreach.name}</h3>
             <p className="mt-1 text-xs text-ink/50">
-              Outreach counts against your plan&rsquo;s daily cap. Keep it relevant — spam reports affect your account.
+              Outreach counts against your plan&rsquo;s daily cap. Keep it relevant -- spam reports affect your account.
             </p>
             <textarea
               className="field mt-3 min-h-28"
               required
               maxLength={5000}
-              placeholder="Hi — we're hiring for…"
+              placeholder="Hi -- we're hiring for…"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
             />
