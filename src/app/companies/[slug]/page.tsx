@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { JobCard } from "@/components/JobCard";
 import { ReviewForm } from "@/components/ReviewForm";
+import { ReportReviewButton } from "@/components/ReportReviewButton";
 import { FollowCompanyButton } from "@/components/FollowCompanyButton";
 import { timeAgo, isUnresolvedCountry, toVideoEmbedUrl } from "@/lib/utils";
 import { renderMarkdown, stripMarkdown } from "@/lib/markdown";
@@ -15,9 +16,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     where: { slug: params.slug },
     select: { name: true, description: true },
   });
-  if (!company) return { title: "Company not found — FiFoDiDo" };
+  if (!company) return { title: "Company not found -- FiFoDiDo" };
   return {
-    title: `${company.name} — jobs & news on FiFoDiDo`,
+    title: `${company.name} -- jobs & news on FiFoDiDo`,
     description: company.description
       ? stripMarkdown(company.description).slice(0, 160)
       : `Open roles at ${company.name}`,
@@ -56,10 +57,13 @@ export default async function CompanyPage({ params }: { params: { slug: string }
   const videoEmbedUrl = company.videoUrl ? toVideoEmbedUrl(company.videoUrl) : null;
 
   // Can the signed-in candidate review this company? Must have reached
-  // interview stage on at least one application — not just applied — so
+  // interview stage on at least one application -- not just applied -- so
   // every review reflects an actual hiring interaction, not a drive-by.
   const session = await auth();
-  let reviewerState: { eligible: boolean; existing: { rating: number; title: string | null; body: string } | null } = { eligible: false, existing: null };
+  let reviewerState: {
+    eligible: boolean;
+    existing: { rating: number; title: string | null; body: string; status: "PUBLISHED" | "HIDDEN" } | null;
+  } = { eligible: false, existing: null };
   let isFollowing = false;
   if (session?.user.role === "CANDIDATE") {
     const candidate = await prisma.candidateProfile.findUnique({ where: { userId: session.user.id } });
@@ -71,7 +75,7 @@ export default async function CompanyPage({ params }: { params: { slug: string }
       if (interviewed) {
         const existing = await prisma.companyReview.findUnique({
           where: { companyId_candidateId: { companyId: company.id, candidateId: candidate.id } },
-          select: { rating: true, title: true, body: true },
+          select: { rating: true, title: true, body: true, status: true },
         });
         reviewerState = { eligible: true, existing };
       }
@@ -202,9 +206,12 @@ export default async function CompanyPage({ params }: { params: { slug: string }
                     </p>
                     {r.title && <p className="mt-1 font-semibold">{r.title}</p>}
                     <p className="mt-1 whitespace-pre-wrap text-ink/80">{r.body}</p>
-                    <p className="mt-2 text-xs text-ink/50">
-                      {r.candidate.firstName} {r.candidate.lastName.slice(0, 1)}. · {timeAgo(r.createdAt)}
-                    </p>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="text-xs text-ink/50">
+                        {r.candidate.firstName} {r.candidate.lastName.slice(0, 1)}. · {timeAgo(r.createdAt)}
+                      </p>
+                      <ReportReviewButton reviewId={r.id} signedIn={!!session?.user} />
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -216,7 +223,7 @@ export default async function CompanyPage({ params }: { params: { slug: string }
             ) : (
               <p className="card text-xs text-ink/50">
                 Reviews are limited to candidates who've reached at least an interview stage with this
-                company, so every rating reflects a real hiring experience — not just an application.
+                company, so every rating reflects a real hiring experience -- not just an application.
               </p>
             )}
           </div>
