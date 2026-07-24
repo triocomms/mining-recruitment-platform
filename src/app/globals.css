@@ -39,7 +39,8 @@ body {
      color: #FFFFFF). */
   .btn-primary { @apply btn bg-hivis text-white hover:bg-hivis-deep; }
   .btn-dark { @apply btn bg-ink text-bone hover:bg-ink-soft; }
-  .btn-ghost { @apply btn border border-ink/20 bg-transparent hover:border-ink/50; }
+  .btn-ghost { @apply btn border-[1.5px] border-hivis-light bg-transparent text-hivis-deep hover:bg-hivis-light/30; }
+  .btn-secondary { @apply btn border-[1.5px] border-oregold bg-transparent text-oxide-deep hover:bg-oregold/30; }
 
   .field {
     @apply w-full rounded-card border border-ink/20 bg-white px-3.5 py-3 text-sm placeholder:text-ink/40 focus:border-hivis focus:outline-none focus:ring-1 focus:ring-hivis;
@@ -47,6 +48,7 @@ body {
   .label { @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink/60; }
   .card { @apply rounded-card border border-ink/10 bg-white p-4 sm:p-5; }
   .tag { @apply inline-flex items-center rounded-full bg-ink/5 px-2.5 py-1 text-xs font-medium text-ink/70; }
+  .rule-oxide { @apply block h-1 w-10 rounded-full bg-oxide; }
 }
 
 @media (prefers-reduced-motion: reduce) {

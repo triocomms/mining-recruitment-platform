@@ -38,7 +38,7 @@ export default async function HomePage() {
         <h1 className="mt-2 font-display text-4xl font-bold uppercase leading-[0.95] tracking-tight sm:text-6xl">
           From the pit
           <br />
-          to the plant.
+          to the <span className="text-oxide">plant.</span>
         </h1>
         <p className="mt-4 max-w-xl text-ink/70">
           {jobCount > 0 ? `${jobCount} open roles` : "Open roles"} across gold, iron ore, lithium, copper and
@@ -62,7 +62,10 @@ export default async function HomePage() {
 
       <section>
         <div className="mb-4 flex items-end justify-between">
-          <h2 className="font-display text-2xl font-semibold uppercase tracking-wide">Latest roles</h2>
+          <div>
+            <span className="rule-oxide mb-2" />
+            <h2 className="font-display text-2xl font-semibold uppercase tracking-wide">Latest roles</h2>
+          </div>
           <Link href="/jobs" className="text-sm font-semibold text-oxide hover:underline">All jobs →</Link>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -75,7 +78,10 @@ export default async function HomePage() {
 
       <section>
         <div className="mb-4 flex items-end justify-between">
-          <h2 className="font-display text-2xl font-semibold uppercase tracking-wide">Industry news</h2>
+          <div>
+            <span className="rule-oxide mb-2" />
+            <h2 className="font-display text-2xl font-semibold uppercase tracking-wide">Industry news</h2>
+          </div>
           <Link href="/news" className="text-sm font-semibold text-oxide hover:underline">All news →</Link>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
