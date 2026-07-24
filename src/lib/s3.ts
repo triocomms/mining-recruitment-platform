@@ -18,20 +18,20 @@ const BUCKET = process.env.S3_BUCKET!;
 // Site-wide hard ceiling: nothing may ever be uploaded above this, no
 // matter what an individual kind below specifies. Keeps a typo in a future
 // per-kind limit (or a raised one) from ever re-opening the door to
-// multi-hundred-MB/GB uploads.
-export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // 8 MB
+// multi-hundred-MB/GB uploads. Set to 5MB to line up with Seek's upload cap.
+export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
 
 export const UPLOAD_RULES = {
-  resume: { maxBytes: 8 * 1024 * 1024, types: ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"] },
+  resume: { maxBytes: 5 * 1024 * 1024, types: ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"] },
   coverLetter: { maxBytes: 4 * 1024 * 1024, types: ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"] },
   photo: { maxBytes: 3 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp"] },
   logo: { maxBytes: 3 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp", "image/svg+xml"] },
-  kyb: { maxBytes: 8 * 1024 * 1024, types: ["application/pdf", "image/jpeg", "image/png"] },
-  certification: { maxBytes: 8 * 1024 * 1024, types: ["application/pdf", "image/jpeg", "image/png"] },
-  employment: { maxBytes: 8 * 1024 * 1024, types: ["application/pdf", "image/jpeg", "image/png"] },
-  blogCover: { maxBytes: 6 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp"] },
-  blogImage: { maxBytes: 6 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp"] },
-  companyMedia: { maxBytes: 6 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp"] },
+  kyb: { maxBytes: 5 * 1024 * 1024, types: ["application/pdf", "image/jpeg", "image/png"] },
+  certification: { maxBytes: 5 * 1024 * 1024, types: ["application/pdf", "image/jpeg", "image/png"] },
+  employment: { maxBytes: 5 * 1024 * 1024, types: ["application/pdf", "image/jpeg", "image/png"] },
+  blogCover: { maxBytes: 5 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp"] },
+  blogImage: { maxBytes: 5 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp"] },
+  companyMedia: { maxBytes: 5 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp"] },
 } as const;
 
 export type UploadKind = keyof typeof UPLOAD_RULES;
