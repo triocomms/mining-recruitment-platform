@@ -15,9 +15,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     where: { slug: params.slug },
     select: { name: true, description: true },
   });
-  if (!company) return { title: "Company not found — Orebridge" };
+  if (!company) return { title: "Company not found — FiFoDiDo" };
   return {
-    title: `${company.name} — jobs & news on Orebridge`,
+    title: `${company.name} — jobs & news on FiFoDiDo`,
     description: company.description
       ? stripMarkdown(company.description).slice(0, 160)
       : `Open roles at ${company.name}`,
