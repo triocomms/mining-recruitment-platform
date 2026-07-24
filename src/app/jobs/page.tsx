@@ -123,6 +123,7 @@ export default async function JobsPage({
 
   return (
     <div>
+      <span className="rule-oxide mb-2" />
       <h1 className="font-display text-3xl font-bold uppercase tracking-tight">Find your next role</h1>
       <p className="mt-1 text-sm text-ink/60">{total} live {total === 1 ? "job" : "jobs"}</p>
 
