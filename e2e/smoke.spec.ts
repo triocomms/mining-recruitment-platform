@@ -11,7 +11,7 @@ import { test, expect } from "@playwright/test";
 test("homepage loads", async ({ page }) => {
   const res = await page.goto("/");
   expect(res?.ok()).toBeTruthy();
-  await expect(page).toHaveTitle(/orebridge/i);
+  await expect(page).toHaveTitle(/fifodido/i);
 });
 
 test("jobs listing page loads and renders the search form", async ({ page }) => {
