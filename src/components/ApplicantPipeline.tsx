@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const STAGES = [
   ["SUBMITTED", "New"],
@@ -34,6 +35,7 @@ type Applicant = {
   coverLetterName: string | null;
   appliedAgo: string;
   candidate: {
+    id: string;
     name: string;
     email: string;
     phone: string | null;
@@ -97,19 +99,23 @@ function ApplicantRow({ app }: { app: Applicant }) {
     <li className="card">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="font-semibold">{app.candidate.name}</p>
+          <p className="font-semibold">
+            <Link href={`/dashboard/employer/candidates/${app.candidate.id}`} className="hover:underline">
+              {app.candidate.name}
+            </Link>
+          </p>
           <p className="text-xs text-ink/60">
             {app.candidate.headline || "No headline"}
-            {app.candidate.location && ` · ${app.candidate.location}`}
-            {app.candidate.yearsExperience != null && ` · ${app.candidate.yearsExperience} yrs exp`}
-            {" · applied "}{app.appliedAgo}
+            {app.candidate.location && ` Â· ${app.candidate.location}`}
+            {app.candidate.yearsExperience != null && ` Â· ${app.candidate.yearsExperience} yrs exp`}
+            {" Â· applied "}{app.appliedAgo}
           </p>
           <p className="mt-1 text-xs text-ink/60">
             <a href={`mailto:${app.candidate.email}`} className="underline">{app.candidate.email}</a>
-            {app.candidate.phone && <> · {app.candidate.phone}</>}
+            {app.candidate.phone && <> Â· {app.candidate.phone}</>}
             {app.resumeKey && (
               <>
-                {" · "}
+                {" Â· "}
                 <a href={`/api/files?key=${encodeURIComponent(app.resumeKey)}`} target="_blank" rel="noreferrer" className="underline">
                   {app.resumeName ?? "Resume"}
                 </a>
@@ -117,7 +123,7 @@ function ApplicantRow({ app }: { app: Applicant }) {
             )}
             {app.coverLetterKey && (
               <>
-                {" · "}
+                {" Â· "}
                 <a href={`/api/files?key=${encodeURIComponent(app.coverLetterKey)}`} target="_blank" rel="noreferrer" className="underline">
                   {app.coverLetterName ?? "Cover letter"}
                 </a>
@@ -159,7 +165,7 @@ function ApplicantRow({ app }: { app: Applicant }) {
             disabled={busyNotes || notes === savedNotes}
             onClick={saveNotes}
           >
-            {busyNotes ? "Saving…" : "Save note"}
+            {busyNotes ? "Savingâ¦" : "Save note"}
           </button>
         </div>
       </div>
