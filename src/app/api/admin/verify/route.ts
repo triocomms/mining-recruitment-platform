@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
       to: company.owner.email,
       subject:
         parsed.data.status === "VERIFIED"
-          ? `${company.name} is now verified on Orebridge`
-          : `Your Orebridge verification was not approved`,
+          ? `${company.name} is now verified on FiFoDiDo`
+          : `Your FiFoDiDo verification was not approved`,
       body:
         parsed.data.status === "VERIFIED"
           ? `Good news — ${company.name} has passed verification. Your job ads now publish immediately and candidates will see a verified badge on your listings.`
