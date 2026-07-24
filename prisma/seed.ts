@@ -2,10 +2,10 @@
  * Seed data for local development.
  *   npx prisma db seed
  *
- * Accounts (password for all: "orebridge-dev"):
- *   admin@orebridge.local      — ADMIN
- *   employer@orebridge.local   — EMPLOYER (verified, no subscription → 1 free ad used)
- *   candidate@orebridge.local  — CANDIDATE (public profile, resume key is a placeholder)
+ * Accounts (password for all: "fifodido-dev"):
+ *   admin@fifodido.local      — ADMIN
+ *   employer@fifodido.local   — EMPLOYER (verified, no subscription → 1 free ad used)
+ *   candidate@fifodido.local  — CANDIDATE (public profile, resume key is a placeholder)
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
@@ -13,19 +13,19 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const passwordHash = await bcrypt.hash("orebridge-dev", 12);
+  const passwordHash = await bcrypt.hash("fifodido-dev", 12);
 
   const admin = await prisma.user.upsert({
-    where: { email: "admin@orebridge.local" },
+    where: { email: "admin@fifodido.local" },
     update: {},
-    create: { email: "admin@orebridge.local", passwordHash, role: "ADMIN" },
+    create: { email: "admin@fifodido.local", passwordHash, role: "ADMIN" },
   });
 
   const employerUser = await prisma.user.upsert({
-    where: { email: "employer@orebridge.local" },
+    where: { email: "employer@fifodido.local" },
     update: {},
     create: {
-      email: "employer@orebridge.local",
+      email: "employer@fifodido.local",
       passwordHash,
       role: "EMPLOYER",
       consents: {
@@ -54,10 +54,10 @@ async function main() {
   });
 
   const candidateUser = await prisma.user.upsert({
-    where: { email: "candidate@orebridge.local" },
+    where: { email: "candidate@fifodido.local" },
     update: {},
     create: {
-      email: "candidate@orebridge.local",
+      email: "candidate@fifodido.local",
       passwordHash,
       role: "CANDIDATE",
       consents: {
@@ -223,7 +223,7 @@ async function main() {
     });
   }
 
-  console.log("Seed complete. Sign in with *@orebridge.local / orebridge-dev");
+  console.log("Seed complete. Sign in with *@fifodido.local / fifodido-dev");
 }
 
 main()
