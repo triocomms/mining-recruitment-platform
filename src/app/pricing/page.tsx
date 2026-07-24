@@ -3,7 +3,7 @@ import { PLANS } from "@/lib/plans";
 import type { PlanTier } from "@prisma/client";
 
 export const metadata = {
-  title: "Pricing for employers — Orebridge",
+  title: "Pricing for employers — FiFoDiDo",
   description:
     "Simple monthly plans for mining and resources recruiters. Free for candidates, always.",
 };
@@ -13,7 +13,7 @@ export default function PricingPage() {
     <main className="mx-auto max-w-5xl px-4 py-10">
       <h1 className="font-display text-4xl uppercase tracking-wide">Pricing</h1>
       <p className="mt-2 max-w-2xl text-ink/70">
-        Orebridge is <strong>free for candidates, forever</strong> — profiles, applications, and
+        FiFoDiDo is <strong>free for candidates, forever</strong> — profiles, applications, and
         messaging cost nothing. Employers pay a flat monthly fee for job ad quota and hiring tools.
         Every new employer account includes <strong>one free job ad</strong> to try the platform.
       </p>
