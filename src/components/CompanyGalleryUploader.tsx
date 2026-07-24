@@ -27,11 +27,14 @@ export function CompanyGalleryUploader({ initialKeys }: { initialKeys: string[] 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kind: "companyMedia", contentType: file.type }),
       });
-      const { key, url, maxBytes, error: presignError } = await presign.json();
+      const { key, url, fields, maxBytes, error: presignError } = await presign.json();
       if (!presign.ok) throw new Error(presignError);
       if (file.size > maxBytes) throw new Error(`File must be under ${Math.round(maxBytes / 1024 / 1024)} MB`);
 
-      const put = await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      const formData = new FormData();
+      Object.entries(fields as Record<string, string>).forEach(([k, v]) => formData.append(k, v));
+      formData.append("file", file);
+      const put = await fetch(url, { method: "POST", body: formData });
       if (!put.ok) throw new Error("Upload failed — try again");
 
       const save = await fetch("/api/company/gallery", {

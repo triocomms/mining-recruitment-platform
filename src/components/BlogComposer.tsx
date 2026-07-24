@@ -33,10 +33,13 @@ async function uploadImage(kind: "blogCover" | "blogImage", file: File): Promise
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ kind, contentType }),
   });
-  const { key, url, maxBytes, error } = await presign.json();
+  const { key, url, fields, maxBytes, error } = await presign.json();
   if (!presign.ok) throw new Error(error ?? "Upload not allowed");
   if (blob.size > maxBytes) throw new Error("Image too large even after compression");
-  const put = await fetch(url, { method: "PUT", body: blob, headers: { "Content-Type": contentType } });
+  const formData = new FormData();
+  Object.entries(fields as Record<string, string>).forEach(([k, v]) => formData.append(k, v));
+  formData.append("file", blob, file.name);
+  const put = await fetch(url, { method: "POST", body: formData });
   if (!put.ok) throw new Error("Upload failed — try again");
   return key;
 }

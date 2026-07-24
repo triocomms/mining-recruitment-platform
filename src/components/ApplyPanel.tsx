@@ -12,8 +12,13 @@ async function uploadFile(file: File, kind: UploadKind): Promise<{ key: string; 
   });
   const data = await presign.json();
   if (!presign.ok) throw new Error(data.error ?? "Could not prepare upload");
+  // Fast, friendly pre-check — the real limit is the content-length-range
+  // condition S3 enforces on the presigned POST below.
   if (file.size > data.maxBytes) throw new Error(`File must be under ${Math.round(data.maxBytes / 1024 / 1024)} MB`);
-  const put = await fetch(data.url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+  const formData = new FormData();
+  Object.entries(data.fields as Record<string, string>).forEach(([k, v]) => formData.append(k, v));
+  formData.append("file", file);
+  const put = await fetch(data.url, { method: "POST", body: formData });
   if (!put.ok) throw new Error("Upload failed — try again");
   return { key: data.key, name: file.name };
 }

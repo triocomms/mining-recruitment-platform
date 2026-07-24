@@ -32,11 +32,17 @@ export function FileUpload(props: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kind: props.kind, contentType: file.type }),
       });
-      const { key, url, maxBytes, error } = await presign.json();
+      const { key, url, fields, maxBytes, error } = await presign.json();
       if (!presign.ok) throw new Error(error);
+      // Client-side check for a fast, friendly error message — the real
+      // limit is the content-length-range condition S3 enforces on the
+      // presigned POST below, so this can't be bypassed by skipping it.
       if (file.size > maxBytes) throw new Error(`File must be under ${Math.round(maxBytes / 1024 / 1024)} MB`);
 
-      const put = await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      const formData = new FormData();
+      Object.entries(fields as Record<string, string>).forEach(([k, v]) => formData.append(k, v));
+      formData.append("file", file);
+      const put = await fetch(url, { method: "POST", body: formData });
       if (!put.ok) throw new Error("Upload failed — try again");
 
       const save = await fetch(props.endpoint, {
