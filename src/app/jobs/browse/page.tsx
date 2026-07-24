@@ -4,7 +4,7 @@ import { getFacetRegionCombos } from "@/lib/seo-facets";
 export const revalidate = 3600;
 
 export const metadata = {
-  title: "Browse mining jobs by commodity, site type & region — Orebridge",
+  title: "Browse mining jobs by commodity, site type & region — FiFoDiDo",
   description:
     "Explore live mining and resources jobs by commodity, site type and region: gold, iron ore, lithium, underground, FIFO and more.",
 };
