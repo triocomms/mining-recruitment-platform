@@ -35,8 +35,8 @@ export async function sendVerificationEmail(user: { id: string; email: string; r
 
   return sendEmail({
     to: user.email,
-    subject: "Confirm your email — Orebridge",
-    body: `Welcome to Orebridge!\n\nConfirm your email address to activate your account:\n\n${link}\n\nThis link expires in 24 hours.\n\n${roleBlurb}\n\nIf you didn't create this account, you can ignore this email.`,
+    subject: "Confirm your email — FiFoDiDo",
+    body: `Welcome to FiFoDiDo!\n\nConfirm your email address to activate your account:\n\n${link}\n\nThis link expires in 24 hours.\n\n${roleBlurb}\n\nIf you didn't create this account, you can ignore this email.`,
     template: "EMAIL_VERIFY",
   });
 }
@@ -80,8 +80,8 @@ export async function sendEmailChangeConfirmation(currentEmail: string, newEmail
 
   await sendEmail({
     to: newEmail,
-    subject: "Confirm your new email — Orebridge",
-    body: `Confirm this address to finish updating your Orebridge login email:\n\n${link}\n\nThis link expires in 24 hours. Your login email stays as ${currentEmail} until you click it.\n\nIf you didn't request this, you can safely ignore this email — no change has been made.`,
+    subject: "Confirm your new email — FiFoDiDo",
+    body: `Confirm this address to finish updating your FiFoDiDo login email:\n\n${link}\n\nThis link expires in 24 hours. Your login email stays as ${currentEmail} until you click it.\n\nIf you didn't request this, you can safely ignore this email — no change has been made.`,
     template: "EMAIL_CHANGE_CONFIRM",
   });
 
@@ -89,8 +89,8 @@ export async function sendEmailChangeConfirmation(currentEmail: string, newEmail
   // password can't quietly redirect their login email without them noticing.
   await sendEmail({
     to: currentEmail,
-    subject: "Email change requested — Orebridge",
-    body: `Someone requested changing your Orebridge login email to ${newEmail}.\n\nIf this was you, check ${newEmail} for a confirmation link — nothing changes until it's clicked.\n\nIf this wasn't you, your password may be compromised — sign in and change it from Account settings immediately.`,
+    subject: "Email change requested — FiFoDiDo",
+    body: `Someone requested changing your FiFoDiDo login email to ${newEmail}.\n\nIf this was you, check ${newEmail} for a confirmation link — nothing changes until it's clicked.\n\nIf this wasn't you, your password may be compromised — sign in and change it from Account settings immediately.`,
     template: "EMAIL_CHANGE_NOTICE",
   });
 }

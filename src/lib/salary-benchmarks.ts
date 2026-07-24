@@ -1,6 +1,6 @@
 // Static, citable public benchmarks for the /salaries page — deliberately
 // separate from the live-job-ad figures computed in src/app/salaries/*.
-// These numbers are NOT derived from Orebridge job ads. They come from two
+// These numbers are NOT derived from FiFoDiDo job ads. They come from two
 // primary sources and should only ever be updated by re-checking those
 // sources, not estimated or interpolated.
 //

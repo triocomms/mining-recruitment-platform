@@ -20,13 +20,13 @@ function htmlShell(subject: string, body: string) {
   return `<!doctype html><html><body style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
 <h2 style="font-size:18px">${esc(subject)}</h2>
 <div style="font-size:14px;line-height:1.6;white-space:pre-wrap">${esc(body)}</div>
-<p style="margin-top:32px;font-size:12px;color:#888">Orebridge — mining &amp; resources jobs worldwide</p>
+<p style="margin-top:32px;font-size:12px;color:#888">FiFoDiDo — mining &amp; resources jobs worldwide</p>
 </body></html>`;
 }
 
 export async function sendEmail(input: SendEmailInput): Promise<{ ok: boolean; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? "Orebridge <onboarding@resend.dev>";
+  const from = process.env.EMAIL_FROM ?? "FiFoDiDo <onboarding@resend.dev>";
 
   let status = "SENT";
   let error: string | undefined;

@@ -36,7 +36,7 @@ export type FeedSyncSummary = {
  * PENDING_REVIEW for an admin (or, if fields are too sparse to review
  * meaningfully, DRAFT for the employer to complete). Jobs previously
  * imported from this feed that have disappeared from the feed are expired,
- * so a de-listed BHP role doesn't linger on Orebridge.
+ * so a de-listed BHP role doesn't linger on FiFoDiDo.
  *
  * Importing itself is also capped by plan tier (Bronze 25 / Silver 50 /
  * Gold 100, FREE_JOB_ALLOWANCE for no active subscription) — once a
@@ -69,7 +69,7 @@ export async function syncJobFeed(feed: JobFeed): Promise<{ summary: FeedSyncSum
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     const res = await fetch(feed.url, {
       signal: controller.signal,
-      headers: { "User-Agent": "OrebridgeJobFeedBot/1.0 (+https://mining-recruitment-platform.vercel.app)" },
+      headers: { "User-Agent": "FifoDiDoJobFeedBot/1.0 (+https://mining-recruitment-platform.vercel.app)" },
     });
     clearTimeout(timeout);
     if (!res.ok) return { summary: empty, error: `Feed returned HTTP ${res.status}` };

@@ -36,7 +36,7 @@ export async function buildUserExport(userId: string) {
   const { passwordHash: _omit, ...safeUser } = user as any;
   return {
     exportedAt: new Date().toISOString(),
-    format: "orebridge-user-export/v1",
+    format: "fifodido-user-export/v1",
     data: safeUser,
   };
 }
