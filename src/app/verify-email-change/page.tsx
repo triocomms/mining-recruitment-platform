@@ -2,7 +2,7 @@ import Link from "next/link";
 import { confirmEmailChangeToken } from "@/lib/verification";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Confirm email change — Orebridge" };
+export const metadata = { title: "Confirm email change — FiFoDiDo" };
 
 export default async function VerifyEmailChangePage({
   searchParams,
