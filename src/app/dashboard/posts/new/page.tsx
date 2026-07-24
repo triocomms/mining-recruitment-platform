@@ -16,7 +16,7 @@ export default async function NewPostPage() {
       </div>
       <p className="mt-1 text-sm text-ink/60">
         {session.user.role === "ADMIN"
-          ? "Published as Orebridge Editorial."
+          ? "Published as FiFoDiDo Editorial."
           : "Published under your company profile (verification required to publish)."}
       </p>
       <div className="mt-6">
