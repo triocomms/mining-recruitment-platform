@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { timeAgo } from "@/lib/utils";
 
 export const metadata = {
-  title: "Mining industry news & insights — Orebridge",
+  title: "Mining industry news & insights — FiFoDiDo",
   description:
     "Hiring trends, site life, and market updates from across the global mining and resources industry.",
 };
@@ -45,7 +45,7 @@ export default async function NewsIndexPage() {
             <h2 className="font-display text-2xl uppercase tracking-wide hover:underline">{featured.title}</h2>
             {featured.excerpt && <p className="mt-2 text-ink/70">{featured.excerpt}</p>}
             <p className="mt-2 text-xs text-ink/50">
-              {featured.type === "COMPANY" && featured.company ? featured.company.name : "Orebridge Editorial"} ·{" "}
+              {featured.type === "COMPANY" && featured.company ? featured.company.name : "FiFoDiDo Editorial"} ·{" "}
               {featured.publishedAt ? timeAgo(featured.publishedAt) : ""}
             </p>
           </Link>
@@ -64,7 +64,7 @@ export default async function NewsIndexPage() {
                 <h3 className="font-semibold hover:underline">{p.title}</h3>
                 {p.excerpt && <p className="mt-1 line-clamp-3 text-sm text-ink/60">{p.excerpt}</p>}
                 <p className="mt-2 text-xs text-ink/50">
-                  {p.type === "COMPANY" && p.company ? p.company.name : "Orebridge Editorial"} ·{" "}
+                  {p.type === "COMPANY" && p.company ? p.company.name : "FiFoDiDo Editorial"} ·{" "}
                   {p.publishedAt ? timeAgo(p.publishedAt) : ""}
                 </p>
               </Link>
