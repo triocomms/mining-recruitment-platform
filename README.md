@@ -1,4 +1,4 @@
-# Orebridge
+# FiFoDiDo
 
 A recruitment platform for the global mining and resources industry. Candidates build rich, privacy-first profiles (tickets, site experience, FIFO preferences, commodities) and apply free; employers post jobs manually or via CSV, message candidates, and subscribe to monthly plans through Stripe.
 
@@ -17,13 +17,13 @@ npx prisma db seed          # demo accounts, jobs, and news posts
 npm run dev
 ```
 
-Seeded logins (password `orebridge-dev` for all):
+Seeded logins (password `fifodido-dev` for all):
 
 | Email | Role |
 |---|---|
-| `admin@orebridge.local` | Admin |
-| `employer@orebridge.local` | Employer (verified, "Red Range Resources") |
-| `candidate@orebridge.local` | Candidate (public profile) |
+| `admin@fifodido.local` | Admin |
+| `employer@fifodido.local` | Employer (verified, "Red Range Resources") |
+| `candidate@fifodido.local` | Candidate (public profile) |
 
 ## Environment
 
