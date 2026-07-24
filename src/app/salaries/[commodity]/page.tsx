@@ -23,10 +23,10 @@ function parseCommodity(slug: string): Commodity | null {
 
 export async function generateMetadata({ params }: { params: { commodity: string } }) {
   const commodity = parseCommodity(params.commodity);
-  if (!commodity) return { title: "Salary guide — Orebridge" };
+  if (!commodity) return { title: "Salary guide — FiFoDiDo" };
   return {
     title: `${pretty(commodity)} salaries — mining & resources pay guide`,
-    description: `Typical pay ranges for ${pretty(commodity)} roles in mining and resources, based on live job ads on Orebridge.`,
+    description: `Typical pay ranges for ${pretty(commodity)} roles in mining and resources, based on live job ads on FiFoDiDo.`,
   };
 }
 
@@ -59,7 +59,7 @@ export default async function CommoditySalaryPage({ params }: { params: { commod
       <Link href="/salaries" className="text-sm text-oxide hover:underline">← Salary guide</Link>
       <h1 className="mt-2 font-display text-3xl uppercase tracking-wide">{pretty(commodity)} salaries</h1>
       <p className="mt-2 max-w-2xl text-sm text-ink/70">
-        Based on live job ads posted on Orebridge — not a formal industry survey. Grouped by site type,
+        Based on live job ads posted on FiFoDiDo — not a formal industry survey. Grouped by site type,
         currency, and pay period rather than converted or blended together.
       </p>
 
@@ -103,7 +103,7 @@ export default async function CommoditySalaryPage({ params }: { params: { commod
 
       <p className="mt-8 text-xs text-ink/40">
         Figures come only from ads with salary data supplied by the employer, and reflect what's currently
-        live on Orebridge rather than total industry pay. They're not converted across currencies or pay
+        live on FiFoDiDo rather than total industry pay. They're not converted across currencies or pay
         periods, so a range shown in AUD/yr and one in USD/hr for the same commodity are deliberately kept
         separate.
       </p>
