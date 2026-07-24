@@ -44,7 +44,7 @@ export default async function ApplicantsPage({ params }: { params: { id: string 
       </p>
       <h1 className="mt-1 font-display text-3xl uppercase tracking-wide">{job.title}</h1>
       <p className="mt-1 text-sm text-ink/60">
-        <Link href={`/jobs/${job.slug}`} className="underline">View public listing</Link> · {applications.length}{" "}
+        <Link href={`/jobs/${job.slug}`} className="underline">View public listing</Link> Â· {applications.length}{" "}
         applicant{applications.length === 1 ? "" : "s"}
       </p>
 
@@ -61,6 +61,7 @@ export default async function ApplicantsPage({ params }: { params: { id: string 
             coverLetterName: a.coverLetterName,
             appliedAgo: timeAgo(a.createdAt),
             candidate: {
+              id: a.candidate.id,
               name: `${a.candidate.firstName} ${a.candidate.lastName}`,
               email: a.candidate.user.email,
               phone: a.candidate.phone,
