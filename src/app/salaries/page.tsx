@@ -7,7 +7,7 @@ import { IndustryBenchmarks } from "@/components/IndustryBenchmarks";
 export const metadata = {
   title: "Mining & resources salary guide",
   description:
-    "Typical pay ranges for mining and resources roles, by commodity, based on live job ads on Orebridge.",
+    "Typical pay ranges for mining and resources roles, by commodity, based on live job ads on FiFoDiDo.",
 };
 export const revalidate = 3600;
 
@@ -29,7 +29,7 @@ export default async function SalariesPage() {
     <main className="mx-auto max-w-4xl px-4 py-8">
       <h1 className="font-display text-3xl uppercase tracking-wide">Mining & resources salary guide</h1>
       <p className="mt-2 max-w-2xl text-sm text-ink/70">
-        Typical pay ranges by commodity, drawn from live job ads posted on Orebridge — not a formal industry
+        Typical pay ranges by commodity, drawn from live job ads posted on FiFoDiDo — not a formal industry
         survey. Figures are shown separately by currency and pay period rather than converted, and only once
         there are enough ads to be meaningful.
       </p>
