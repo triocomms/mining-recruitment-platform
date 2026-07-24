@@ -28,7 +28,11 @@ export function FollowCompanyButton({
   }
 
   return (
-    <button onClick={toggle} disabled={busy} className="btn-ghost disabled:opacity-50">
+    <button
+      onClick={toggle}
+      disabled={busy}
+      className={`${following ? "btn-ghost" : "btn-secondary"} disabled:opacity-50`}
+    >
       {following ? "✓ Following" : "+ Follow company"}
     </button>
   );
