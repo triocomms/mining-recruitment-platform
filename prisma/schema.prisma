@@ -38,6 +38,11 @@ model User {
   pendingEmail                String?
   pendingEmailTokenHash        String?   @unique
   pendingEmailTokenExpiresAt   DateTime?
+  // Forgot-password flow (see lib/verification.ts): a short-lived, single-use
+  // token mailed on request. Kept separate from verifyTokenHash since this one
+  // grants immediate account access and expires much sooner (1h vs 24h).
+  resetPasswordTokenHash       String?   @unique
+  resetPasswordTokenExpiresAt  DateTime?
 
   candidate     CandidateProfile?
   company       Company?          @relation("CompanyOwner")
