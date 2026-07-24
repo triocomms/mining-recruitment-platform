@@ -10,6 +10,7 @@ import type { Role } from "@prisma/client";
  */
 
 const TOKEN_TTL_MS = 24 * 3600 * 1000;
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1h -- shorter than email confirmation since this grants immediate account access
 
 const hash = (raw: string) => crypto.createHash("sha256").update(raw).digest("hex");
 
@@ -113,4 +114,55 @@ export async function confirmEmailChangeToken(raw: string): Promise<string | nul
     },
   });
   return newEmail;
+}
+
+/**
+ * Forgot-password flow. A raw token is emailed; only its SHA-256 hash is
+ * stored, single-use, 1-hour expiry. The lookup endpoint (checkPasswordResetToken)
+ * never reveals *why* a token is invalid to keep this symmetric with the
+ * always-200 behaviour of the request endpoint -- no account enumeration.
+ */
+export async function issuePasswordResetToken(userId: string): Promise<string> {
+  const raw = crypto.randomBytes(32).toString("hex");
+  await prisma.user.update({
+    where: { id: userId },
+    data: { resetPasswordTokenHash: hash(raw), resetPasswordTokenExpiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS) },
+  });
+  return raw;
+}
+
+export async function sendPasswordResetEmail(user: { id: string; email: string }) {
+  const raw = await issuePasswordResetToken(user.id);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const link = `${appUrl}/reset-password?token=${raw}`;
+
+  return sendEmail({
+    to: user.email,
+    subject: "Reset your password -- FiFoDiDo",
+    body: `We received a request to reset your FiFoDiDo password.\n\nChoose a new password here:\n\n${link}\n\nThis link expires in 1 hour and can only be used once.\n\nIf you didn't request this, you can safely ignore this email -- your password won't change.`,
+    template: "PASSWORD_RESET",
+  });
+}
+
+/** Checks whether a raw token is currently valid, without consuming it -- used to gate the reset-password form. */
+export async function checkPasswordResetToken(raw: string): Promise<boolean> {
+  if (!raw || raw.length < 32) return false;
+  const user = await prisma.user.findUnique({ where: { resetPasswordTokenHash: hash(raw) } });
+  if (!user) return false;
+  if (!user.resetPasswordTokenExpiresAt || user.resetPasswordTokenExpiresAt < new Date()) return false;
+  return true;
+}
+
+/** Consumes a raw token, applying a new (already-hashed) password. Returns true on success. */
+export async function resetPasswordWithToken(raw: string, newPasswordHash: string): Promise<boolean> {
+  if (!raw || raw.length < 32) return false;
+  const user = await prisma.user.findUnique({ where: { resetPasswordTokenHash: hash(raw) } });
+  if (!user) return false;
+  if (!user.resetPasswordTokenExpiresAt || user.resetPasswordTokenExpiresAt < new Date()) return false;
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: newPasswordHash, resetPasswordTokenHash: null, resetPasswordTokenExpiresAt: null },
+  });
+  return true;
 }
