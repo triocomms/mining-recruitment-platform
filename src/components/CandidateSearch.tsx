@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { countryName } from "@/lib/countries";
 
 type Result = {
@@ -83,7 +84,7 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
         onSubmit={(e) => { e.preventDefault(); search(1); }}
         className="card grid gap-3 sm:grid-cols-5"
       >
-        <input className="field sm:col-span-2" placeholder="Keyword, ticket, cert…" value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} />
+        <input className="field sm:col-span-2" placeholder="Keyword, ticket, certâ¦" value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} />
         <input className="field uppercase" placeholder="Country (AU)" maxLength={2} value={filters.country} onChange={(e) => setFilters({ ...filters, country: e.target.value })} />
         <select className="field" value={filters.commodity} onChange={(e) => setFilters({ ...filters, commodity: e.target.value })}>
           <option value="">Any commodity</option>
@@ -112,7 +113,7 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
           </select>
         )}
         <button className={`btn-primary ${props.jobs && props.jobs.length > 0 ? "sm:col-span-2" : "sm:col-span-5"}`} disabled={busy}>
-          {busy ? "Searching…" : "Search candidates"}
+          {busy ? "Searchingâ¦" : "Search candidates"}
         </button>
       </form>
 
@@ -132,8 +133,10 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <p className="font-semibold">
-                        {r.firstName}
-                        {r.yearsExperience != null && <span className="text-ink/50"> · {r.yearsExperience} yrs</span>}
+                        <Link href={`/dashboard/employer/candidates/${r.id}`} className="hover:underline">
+                          {r.firstName}
+                        </Link>
+                        {r.yearsExperience != null && <span className="text-ink/50"> Â· {r.yearsExperience} yrs</span>}
                         {r.matchScore !== undefined && (
                           <span className={`tag ml-2 ${r.matchScore >= 60 ? "bg-patina/15 text-patina" : r.matchScore >= 30 ? "bg-oregold/20" : "bg-ink/5"}`}>
                             {r.matchScore}% match
@@ -141,29 +144,29 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
                         )}
                         {r.promoted && (
                           <span className="tag ml-2 bg-hivis/20 text-hivis-deep" title="This candidate has a paid promotion active">
-                            🚀 Promoted
+                            ð Promoted
                           </span>
                         )}
                       </p>
                       {r.matchReasons && r.matchReasons.length > 0 && (
-                        <p className="text-xs text-patina">{r.matchReasons.join(" · ")}</p>
+                        <p className="text-xs text-patina">{r.matchReasons.join(" Â· ")}</p>
                       )}
                       {r.headline && <p className="text-sm text-ink/70">{r.headline}</p>}
                       {r.employmentHistory.length > 0 && (
                         <p className="mt-0.5 text-xs text-patina">
-                          ✓ Verified: {r.employmentHistory[0].title} at {r.employmentHistory[0].companyName}
+                          â Verified: {r.employmentHistory[0].title} at {r.employmentHistory[0].companyName}
                         </p>
                       )}
                       <p className="mt-1 text-xs text-ink/50">
-                        {[r.countryCode, r.region].filter(Boolean).join(" · ")}
-                        {r.fifoPreference && ` · ${pretty(r.fifoPreference)}`}
+                        {[r.countryCode, r.region].filter(Boolean).join(" Â· ")}
+                        {r.fifoPreference && ` Â· ${pretty(r.fifoPreference)}`}
                       </p>
                       {r.rightToWorkCountries.length > 0 && (
                         <p
                           className="mt-1 text-xs text-ink/50"
                           title="Self-declared by the candidate, not verified by FiFoDiDo -- check their Certifications & tickets for supporting documents before proceeding."
                         >
-                          🛂 Right to work: {r.rightToWorkCountries.map(countryName).join(", ")}
+                          ð Right to work: {r.rightToWorkCountries.map(countryName).join(", ")}
                         </p>
                       )}
                     </div>
@@ -176,7 +179,7 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
                     {r.siteExperience.slice(0, 5).map((s) => <span key={s} className="tag bg-ink/5">{pretty(s)}</span>)}
                     {r.certifications.map((c) => (
                       <span key={c.name} className="tag bg-patina/10">
-                        {c.verificationStatus === "VERIFIED" ? `✓ ${c.name}` : c.name}
+                        {c.verificationStatus === "VERIFIED" ? `â ${c.name}` : c.name}
                       </span>
                     ))}
                   </div>
@@ -185,8 +188,8 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
             </ul>
           )}
           <div className="mt-4 flex gap-2">
-            {page > 1 && <button className="btn-ghost" onClick={() => search(page - 1)}>← Previous</button>}
-            {results.length === 20 && <button className="btn-ghost" onClick={() => search(page + 1)}>Next →</button>}
+            {page > 1 && <button className="btn-ghost" onClick={() => search(page - 1)}>â Previous</button>}
+            {results.length === 20 && <button className="btn-ghost" onClick={() => search(page + 1)}>Next â</button>}
           </div>
         </>
       )}
@@ -202,7 +205,7 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
               className="field mt-3 min-h-28"
               required
               maxLength={5000}
-              placeholder="Hi -- we're hiring for…"
+              placeholder="Hi -- we're hiring forâ¦"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
             />
