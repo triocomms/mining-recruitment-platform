@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function ReviewForm(props: { companyId: string; existing?: { rating: number; title: string | null; body: string } | null }) {
+export function ReviewForm(props: {
+  companyId: string;
+  existing?: { rating: number; title: string | null; body: string; status: "PUBLISHED" | "HIDDEN" } | null;
+}) {
   const router = useRouter();
   const [rating, setRating] = useState(props.existing?.rating ?? 0);
   const [title, setTitle] = useState(props.existing?.title ?? "");
@@ -11,6 +14,7 @@ export function ReviewForm(props: { companyId: string; existing?: { rating: numb
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [status, setStatus] = useState<"PUBLISHED" | "HIDDEN" | null>(props.existing?.status ?? null);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -21,21 +25,37 @@ export function ReviewForm(props: { companyId: string; existing?: { rating: numb
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ companyId: props.companyId, rating, title: title || undefined, body }),
     });
+    const data = await res.json().catch(() => ({}));
     setBusy(false);
     if (res.ok) {
+      setStatus(data.status ?? "PUBLISHED");
       setDone(true);
       router.refresh();
     } else {
-      const data = await res.json().catch(() => ({}));
       setError(data.error ?? "Could not save review");
     }
   }
 
-  if (done) return <p className="card text-sm text-patina">✓ Thanks — your review is live.</p>;
+  if (done) {
+    return status === "HIDDEN" ? (
+      <p className="card text-sm text-ink/60">
+        Saved -- but this review was previously hidden after a report was upheld, so it stays off the public
+        page. Contact support if you think that was a mistake.
+      </p>
+    ) : (
+      <p className="card text-sm text-patina">✓ Thanks -- your review is live.</p>
+    );
+  }
 
   return (
     <form onSubmit={submit} className="card space-y-3">
       <p className="label">{props.existing ? "Update your review" : "Review this employer"}</p>
+      {status === "HIDDEN" && (
+        <p className="text-xs text-ink/50">
+          This review is currently hidden after a report was upheld. Editing it won&rsquo;t bring it back --
+          contact support if you&rsquo;d like it reconsidered.
+        </p>
+      )}
       <div className="flex items-center gap-1" role="radiogroup" aria-label="Rating">
         {[1, 2, 3, 4, 5].map((n) => (
           <button
