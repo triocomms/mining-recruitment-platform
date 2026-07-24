@@ -123,7 +123,7 @@ export default async function JobPage({ params }: { params: { slug: string } }) 
         <div className="mt-3 flex flex-wrap gap-1.5">
           <span className="tag">{formatLocation(job.city, job.region, job.countryCode)}</span>
           {job.fifo && <span className="tag !bg-hivis/15 !text-hivis-deep">FIFO{job.rosterPattern ? ` · ${job.rosterPattern} roster` : ""}</span>}
-          {job.commodity && <span className="tag">{pretty(job.commodity)}</span>}
+          {job.commodity && <span className="tag !bg-oregold/40 !text-oxide-deep">{pretty(job.commodity)}</span>}
           {job.siteType && <span className="tag">{pretty(job.siteType)}</span>}
           <span className="tag">{pretty(job.employmentType)}</span>
           {salary && <span className="tag !bg-patina/10 !text-patina">{salary}</span>}
