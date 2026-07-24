@@ -10,12 +10,6 @@ const schema = z.object({
   body: z.string().trim().min(20, "Please write at least a couple of sentences").max(2000),
 });
 
-/**
- * Candidates who've reached interview stage on at least one application to a
- * company may leave (or update) one review — not just anyone who applied,
- * so every review reflects a real hiring interaction. Reviews are moderated
- * through the standard report pipeline: an upheld report hides the review.
- */
 export async function POST(req: NextRequest) {
   const user = await requireUser("CANDIDATE");
   if (!user) return NextResponse.json({ error: "Candidate account required" }, { status: 403 });
@@ -40,6 +34,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const existing = await prisma.companyReview.findUnique({
+    where: { companyId_candidateId: { companyId: d.companyId, candidateId: candidate.id } },
+    select: { status: true },
+  });
+
+  // A review an admin has upheld a report against and hidden stays hidden
+  // through an edit -- otherwise a candidate could silently undo moderation
+  // just by re-saving the form with no real change. Only an admin
+  // (src/app/api/admin/reports/route.ts) can restore it to PUBLISHED.
+  const nextStatus = existing?.status === "HIDDEN" ? "HIDDEN" : "PUBLISHED";
+
   const review = await prisma.companyReview.upsert({
     where: { companyId_candidateId: { companyId: d.companyId, candidateId: candidate.id } },
     create: {
@@ -49,8 +54,8 @@ export async function POST(req: NextRequest) {
       title: d.title,
       body: d.body,
     },
-    update: { rating: d.rating, title: d.title, body: d.body, status: "PUBLISHED" },
+    update: { rating: d.rating, title: d.title, body: d.body, status: nextStatus },
   });
 
-  return NextResponse.json({ ok: true, id: review.id });
+  return NextResponse.json({ ok: true, id: review.id, status: review.status });
 }
