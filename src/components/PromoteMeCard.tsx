@@ -13,8 +13,8 @@ export type LatestPromotion = {
   tier: Tier;
   headline: string;
   pitch: string;
-  paidAt: string | null;
-  expiresAt: string | null;
+  paidAt: Date | null;
+  expiresAt: Date | null;
 } | null;
 
 /**
