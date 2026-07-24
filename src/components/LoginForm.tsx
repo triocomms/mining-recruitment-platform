@@ -58,7 +58,10 @@ export function LoginForm() {
         <input id="email" name="email" type="email" required className="field" autoComplete="email" />
       </div>
       <div>
-        <label className="label" htmlFor="password">Password</label>
+        <div className="flex items-center justify-between">
+          <label className="label" htmlFor="password">Password</label>
+          <a href="/forgot-password" className="text-xs font-semibold text-oxide underline">Forgot password?</a>
+        </div>
         <input id="password" name="password" type="password" required className="field" autoComplete="current-password" />
       </div>
       {error && <p className="text-sm text-oxide" role="alert">{error}</p>}
