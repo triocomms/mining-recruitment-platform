@@ -35,8 +35,8 @@ export async function generateMetadata({
   params: { facet: string; region: string };
 }): Promise<Metadata> {
   const data = await loadPage(params.facet, params.region);
-  if (!data) return { title: "Jobs — Orebridge" };
-  const title = `${data.facet.label} jobs in ${data.region} — Orebridge`;
+  if (!data) return { title: "Jobs — FiFoDiDo" };
+  const title = `${data.facet.label} jobs in ${data.region} — FiFoDiDo`;
   const description = `${data.jobs.length} live ${data.facet.label.toLowerCase()} mining & resources ${
     data.jobs.length === 1 ? "job" : "jobs"
   } in ${data.region}. FIFO, residential and international roles, updated daily.`;
