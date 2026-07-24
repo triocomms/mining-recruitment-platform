@@ -48,3 +48,14 @@ export const FREE_JOB_ALLOWANCE = 1;
 export const FREE_DAILY_MESSAGE_CAP = 5;
 /** Reply cap inside existing threads for everyone (spam brake). */
 export const DAILY_MESSAGE_HARD_CAP = 200;
+
+/** Candidate "Promote Me" boost — one-time payment, surfaces the profile
+ * above others in the employer resume database for a fixed window. Prices
+ * match the schema comment on PromotionListing/PromotionTier. */
+export const PROMOTION_PRICING: Record<
+  "DAYS_30" | "DAYS_90",
+  { label: string; usd: number; days: number; stripePriceEnv: string }
+> = {
+  DAYS_30: { label: "30 days", usd: 29, days: 30, stripePriceEnv: "STRIPE_PRICE_PROMOTION_30" },
+  DAYS_90: { label: "90 days", usd: 79, days: 90, stripePriceEnv: "STRIPE_PRICE_PROMOTION_90" },
+};
