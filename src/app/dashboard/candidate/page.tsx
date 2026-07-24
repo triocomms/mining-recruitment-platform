@@ -109,6 +109,7 @@ export default async function CandidateDashboard() {
         </div>
         <div className="flex gap-2">
           <Link href="/dashboard/candidate/profile" className="btn-primary">Edit profile</Link>
+          <Link href="/dashboard/candidate/preview" className="btn-ghost">Preview my profile</Link>
           <Link href="/dashboard/messages" className="btn-ghost">Messages</Link>
         </div>
       </div>
@@ -135,7 +136,7 @@ export default async function CandidateDashboard() {
                   topRight={<span className="tag whitespace-nowrap bg-patina/15 text-patina">{score}% match</span>}
                 />
                 {reasons.length > 0 && (
-                  <p className="mt-1 px-1 text-xs text-ink/50">{reasons.join(" · ")}</p>
+                  <p className="mt-1 px-1 text-xs text-ink/50">{reasons.join(" Â· ")}</p>
                 )}
               </div>
             ))}
@@ -165,7 +166,7 @@ export default async function CandidateDashboard() {
                     <Link href={`/jobs/${a.job.slug}`} className="block truncate font-semibold hover:underline">
                       {a.job.title}
                     </Link>
-                    <p className="text-xs text-ink/60">{a.job.company.name} · applied {timeAgo(a.createdAt)}</p>
+                    <p className="text-xs text-ink/60">{a.job.company.name} Â· applied {timeAgo(a.createdAt)}</p>
                   </div>
                   <span className={`tag shrink-0 ${STATUS_TONE[a.status] ?? ""}`}>{a.status.toLowerCase()}</span>
                 </li>
@@ -209,7 +210,7 @@ export default async function CandidateDashboard() {
                     </Link>
                     <p className="text-xs text-ink/60">
                       {b.job.company.name}
-                      {b.job.status !== "PUBLISHED" && <span className="text-oxide"> · no longer live</span>}
+                      {b.job.status !== "PUBLISHED" && <span className="text-oxide"> Â· no longer live</span>}
                     </p>
                   </li>
                 ))}
@@ -258,7 +259,7 @@ export default async function CandidateDashboard() {
                     s.minSalary != null && `min $${s.minSalary.toLocaleString()}`,
                   ]
                     .filter(Boolean)
-                    .join(" · ");
+                    .join(" Â· ");
                   return (
                     <li key={s.id} className="card text-sm">
                       <div className="flex items-start justify-between gap-2">
@@ -284,7 +285,7 @@ export default async function CandidateDashboard() {
             <p className="font-semibold">Account settings</p>
             <p className="mt-1 text-ink/60">Change the email or password you sign in with.</p>
             <Link href="/dashboard/settings" className="mt-2 inline-block underline">
-              Account settings →
+              Account settings â
             </Link>
           </div>
 
@@ -292,7 +293,7 @@ export default async function CandidateDashboard() {
             <p className="font-semibold">Your data, your call</p>
             <p className="mt-1 text-ink/60">Export or delete everything we hold about you.</p>
             <Link href="/dashboard/candidate/privacy" className="mt-2 inline-block underline">
-              Privacy controls →
+              Privacy controls â
             </Link>
           </div>
         </aside>
