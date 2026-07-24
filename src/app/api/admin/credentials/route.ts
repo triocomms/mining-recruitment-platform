@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
         to: cert.candidate.user.email,
         subject:
           d.status === "VERIFIED"
-            ? `${cert.name} verified on Orebridge`
+            ? `${cert.name} verified on FiFoDiDo`
             : `We couldn't verify ${cert.name}`,
         body:
           d.status === "VERIFIED"
