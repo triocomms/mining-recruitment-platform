@@ -45,7 +45,7 @@ async function approveJob(job: JobWithCompany, adminId: string) {
   await sendEmail({
     to: job.company.owner.email,
     subject: `Your job ad "${job.title}" is now live`,
-    body: `Your ad "${job.title}" passed review and is now published on Orebridge. It will run for 30 days.`,
+    body: `Your ad "${job.title}" passed review and is now published on FiFoDiDo. It will run for 30 days.`,
     template: "JOB_APPROVED",
   });
 }
