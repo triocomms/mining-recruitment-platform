@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     await logAdminAction(admin.id, "USER_SUSPEND", "USER", user.id, d.reason);
     await sendEmail({
       to: user.email,
-      subject: "Your Orebridge account has been suspended",
+      subject: "Your FiFoDiDo account has been suspended",
       body: `Your account has been suspended.\n\nReason: ${d.reason}\n\nIf you believe this is a mistake, reply to this email to appeal.`,
       template: "USER_SUSPENDED",
     });
