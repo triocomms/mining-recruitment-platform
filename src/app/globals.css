@@ -10,18 +10,13 @@ body {
   @apply bg-bone text-ink font-body antialiased;
 }
 
-/* Signature element: the "core sample" — a strata band echoing a drill core,
-   used as the section divider across the product. */
+/* Signature element: a thin section-divider bar. Previously a 5-stop
+   gradient; simplified to a flat brand-primary (teal) line per
+   BRAND_GUIDE.md ("Don't add gradients ... flat white surfaces only" /
+   "do not introduce additional accent colours"). */
 .strata {
   height: 6px;
-  background: linear-gradient(
-    to right,
-    #a6432a 0 22%,
-    #c99a3b 22% 41%,
-    #171b21 41% 63%,
-    #3e8e7e 63% 78%,
-    #f5a300 78% 100%
-  );
+  background: #0F6E56;
 }
 
 /* Wrapped in @layer components so Tailwind slots these into the components
@@ -38,7 +33,11 @@ body {
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-card px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hivis;
   }
-  .btn-primary { @apply btn bg-hivis text-ink hover:bg-hivis-deep; }
+  /* text-white (not text-ink) — brand-primary/hivis is now a dark teal, not
+     bright amber, so button label text must be light for contrast, matching
+     BRAND_GUIDE.md's primary button pattern (background: brand-primary;
+     color: #FFFFFF). */
+  .btn-primary { @apply btn bg-hivis text-white hover:bg-hivis-deep; }
   .btn-dark { @apply btn bg-ink text-bone hover:bg-ink-soft; }
   .btn-ghost { @apply btn border border-ink/20 bg-transparent hover:border-ink/50; }
 

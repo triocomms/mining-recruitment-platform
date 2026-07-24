@@ -12,7 +12,7 @@ const display = Barlow_Condensed({
 const body = Archivo({ subsets: ["latin"], variable: "--font-body" });
 
 export const metadata: Metadata = {
-  title: { default: "Orebridge — Mining & Resources Jobs Worldwide", template: "%s · Orebridge" },
+  title: { default: "FiFoDiDo — Mining & Resources Jobs Worldwide", template: "%s · FiFoDiDo" },
   description:
     "The global job board for mining and resources. FIFO, residential and international roles across gold, iron ore, lithium, copper and more.",
 };
@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="border-t border-ink/10 bg-white">
           <div className="mx-auto max-w-5xl px-4 py-8 text-sm text-ink/60 sm:px-6">
             <div className="strata mb-6 max-w-[120px]" aria-hidden="true" />
-            <p className="font-display text-lg font-semibold uppercase tracking-wide text-ink">Orebridge</p>
+            <p className="font-display text-lg font-semibold uppercase tracking-wide text-ink">FiFoDiDo</p>
             <p className="mt-1">Jobs across the global mining and resources industry.</p>
             <nav className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
               <a href="/jobs" className="hover:text-ink">Browse jobs</a>
