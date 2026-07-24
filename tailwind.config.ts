@@ -21,16 +21,18 @@ const config: Config = {
         // "bone" = page/card surface (was cream, now always white per
         // brand guide — "no dark mode variant needed for this site").
         bone: { DEFAULT: "#FFFFFF", soft: "#FFFFFF" },
-        // "oxide" = negative/rejected/error state → brand secondary (coral).
-        oxide: "#D85A30",
-        // "oregold" = pending/warning state → a lighter coral tint, kept
-        // visually distinct from the solid-coral "oxide" error tone without
-        // introducing a third brand hue.
+        // "oxide" = brand secondary (coral) — also used for negative/
+        // rejected/error state. `deep` is the brand guide's coral hover/
+        // text-on-tint shade, for buttons, headings and decorative accents.
+        oxide: { DEFAULT: "#D85A30", deep: "#993C1D" },
+        // "oregold" = pending/warning state, and the brand guide's coral
+        // bg-strong tint for accent chips/badges/borders.
         oregold: "#F5C4B3",
         // "patina" = verified/success state → brand primary (teal).
         patina: "#0F6E56",
-        // "hivis" = primary CTA colour → brand primary (teal).
-        hivis: { DEFAULT: "#0F6E56", deep: "#085041" },
+        // "hivis" = primary CTA colour → brand primary (teal). `light` is
+        // the brand guide's teal bg-strong tint, for tinted borders/badges.
+        hivis: { DEFAULT: "#0F6E56", deep: "#085041", light: "#9FE1CB" },
       },
       fontFamily: {
         display: ["var(--font-display)"],
