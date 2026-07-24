@@ -22,6 +22,7 @@ export default async function NewsIndexPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
+      <span className="rule-oxide mb-2" />
       <h1 className="font-display text-4xl uppercase tracking-wide">Industry news</h1>
       <p className="mt-1 text-ink/60">
         Market updates, hiring trends and stories from the people who dig, drill, and process the
