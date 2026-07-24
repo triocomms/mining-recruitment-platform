@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { PlanTier, SubscriptionStatus } from "@prisma/client";
+import { PROMOTION_PRICING } from "@/lib/plans";
 
 export const runtime = "nodejs";
 
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
-      // One-time overage purchase → grant a job slot credit.
+      // One-time overage purchase -> grant a job slot credit.
       if (session.mode === "payment" && session.metadata?.purpose === "JOB_OVERAGE") {
         await prisma.overagePurchase.upsert({
           where: { stripeSessionId: session.id },
@@ -43,6 +44,29 @@ export async function POST(req: NextRequest) {
           },
           update: {},
         });
+      }
+      // One-time candidate "Promote Me" purchase -> activate the listing.
+      // The row already exists (created unpaid in api/promotions/route.ts
+      // before the Stripe session), so this just stamps paidAt/expiresAt --
+      // never trust amount/tier off the session alone since a listing's own
+      // `tier` is what was actually validated and priced server-side.
+      if (session.mode === "payment" && session.metadata?.purpose === "CANDIDATE_PROMOTION") {
+        const promotionId = session.metadata.promotionId;
+        const listing = promotionId
+          ? await prisma.promotionListing.findUnique({ where: { id: promotionId } })
+          : null;
+        if (listing && !listing.paidAt) {
+          const days = PROMOTION_PRICING[listing.tier].days;
+          const paidAt = new Date();
+          await prisma.promotionListing.update({
+            where: { id: listing.id },
+            data: {
+              paidAt,
+              expiresAt: new Date(paidAt.getTime() + days * 24 * 60 * 60 * 1000),
+              stripeSessionId: session.id,
+            },
+          });
+        }
       }
       break;
     }
@@ -80,7 +104,7 @@ export async function POST(req: NextRequest) {
       break;
     }
     case "invoice.paid": {
-      // New billing period → reset the job-ad usage counter.
+      // New billing period -> reset the job-ad usage counter.
       const invoice = event.data.object as Stripe.Invoice;
       if (invoice.billing_reason === "subscription_cycle" && invoice.subscription) {
         await prisma.subscription.updateMany({
