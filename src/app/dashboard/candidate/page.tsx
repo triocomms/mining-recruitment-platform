@@ -7,6 +7,7 @@ import { scoreMatch } from "@/lib/matching";
 import { JobCard } from "@/components/JobCard";
 import { DeleteSavedSearchButton } from "@/components/DeleteSavedSearchButton";
 import { SavedSearchFrequencyToggle } from "@/components/SavedSearchFrequencyToggle";
+import { PromoteMeCard } from "@/components/PromoteMeCard";
 import type { Prisma } from "@prisma/client";
 
 const STATUS_TONE: Record<string, string> = {
@@ -50,6 +51,7 @@ export default async function CandidateDashboard() {
         },
       },
       savedSearches: { orderBy: { createdAt: "desc" } },
+      promotions: { orderBy: { createdAt: "desc" }, take: 1 },
     },
   });
   if (!profile) redirect("/login");
@@ -59,10 +61,10 @@ export default async function CandidateDashboard() {
   if (!profile.headline) profileGaps.push("headline");
   if (!profile.summary) profileGaps.push("summary");
 
-  // "Jobs matching you" — reuses the same scoreMatch() the employer side
+  // "Jobs matching you" -- reuses the same scoreMatch() the employer side
   // uses to rank candidates against a job (src/lib/matching.ts), just run
   // in the other direction. Only worth doing once the profile has some
-  // signal to match on — an empty profile can't produce a meaningful score.
+  // signal to match on -- an empty profile can't produce a meaningful score.
   const orConditions: Prisma.JobWhereInput[] = [];
   if (profile.commodities.length > 0) orConditions.push({ commodity: { in: profile.commodities } });
   if (profile.siteExperience.length > 0) orConditions.push({ siteType: { in: profile.siteExperience } });
@@ -113,7 +115,7 @@ export default async function CandidateDashboard() {
 
       {profileGaps.length > 0 && (
         <div className="mt-4 rounded-md border border-oregold/40 bg-oregold/10 px-4 py-3 text-sm">
-          Complete your profile to apply faster — missing: {profileGaps.join(", ")}.{" "}
+          Complete your profile to apply faster -- missing: {profileGaps.join(", ")}.{" "}
           <Link href="/dashboard/candidate/profile" className="font-semibold underline">Fix now</Link>
         </div>
       )}
@@ -122,7 +124,7 @@ export default async function CandidateDashboard() {
         <section className="mt-8">
           <h2 className="font-display text-xl uppercase tracking-wide">Jobs matching you</h2>
           <p className="mt-1 text-xs text-ink/50">
-            Based on your commodities, site experience, and roster preference — same scoring employers see when
+            Based on your commodities, site experience, and roster preference -- same scoring employers see when
             they search candidates, run the other way.
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -275,6 +277,8 @@ export default async function CandidateDashboard() {
               </ul>
             )}
           </div>
+
+          <PromoteMeCard latest={profile.promotions[0] ?? null} />
 
           <div className="card border-ink/10 text-sm">
             <p className="font-semibold">Account settings</p>
