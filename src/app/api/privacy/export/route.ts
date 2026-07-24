@@ -18,7 +18,7 @@ export async function POST() {
   return new NextResponse(JSON.stringify(bundle, null, 2), {
     headers: {
       "Content-Type": "application/json",
-      "Content-Disposition": `attachment; filename="orebridge-data-export-${Date.now()}.json"`,
+      "Content-Disposition": `attachment; filename="fifodido-data-export-${Date.now()}.json"`,
     },
   });
 }
