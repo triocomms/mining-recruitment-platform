@@ -10,9 +10,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     where: { slug: params.slug },
     select: { title: true, excerpt: true, status: true },
   });
-  if (!post || post.status !== "PUBLISHED") return { title: "Article not found — Orebridge" };
+  if (!post || post.status !== "PUBLISHED") return { title: "Article not found — FiFoDiDo" };
   return {
-    title: `${post.title} — Orebridge`,
+    title: `${post.title} — FiFoDiDo`,
     description: post.excerpt ?? undefined,
     openGraph: { title: post.title, description: post.excerpt ?? undefined, type: "article" },
   };
@@ -38,7 +38,7 @@ export default async function NewsArticlePage({ params }: { params: { slug: stri
               {post.company.verificationStatus === "VERIFIED" && " ✓"}
             </Link>
           ) : (
-            "Orebridge Editorial"
+            "FiFoDiDo Editorial"
           )}
           {post.publishedAt && ` · ${post.publishedAt.toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}`}
         </p>
