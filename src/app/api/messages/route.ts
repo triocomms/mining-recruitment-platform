@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
     email: {
       to: recipient.email,
       subject: `New message from ${recipient.senderName}`,
-      body: `${preview}\n\nReply from your Orebridge dashboard.`,
+      body: `${preview}\n\nReply from your FiFoDiDo dashboard.`,
       template: "NEW_MESSAGE",
     },
   }).catch((e) => console.error("[messages] notification failed", e));
