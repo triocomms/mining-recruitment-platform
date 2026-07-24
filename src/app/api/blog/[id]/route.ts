@@ -28,7 +28,7 @@ const schema = z
 /** Confirms the signed-in user (admin or employer) is allowed to touch this
  *  specific post, and returns the actor kind. Employers only ever own their
  *  own company's COMPANY posts; admins are treated as collectively owning
- *  every EDITORIAL post (the "Orebridge" voice isn't tied to one account),
+ *  every EDITORIAL post (the "FiFoDiDo" voice isn't tied to one account),
  *  mirroring the authorization already used for creation in /api/blog. */
 async function authorizePost(postId: string) {
   const admin = await requireUser("ADMIN");
