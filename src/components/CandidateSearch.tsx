@@ -155,7 +155,7 @@ export function CandidateSearch(props: { jobs?: { id: string; title: string }[] 
                       {r.rightToWorkCountries.length > 0 && (
                         <p
                           className="mt-1 text-xs text-ink/50"
-                          title="Self-declared by the candidate, not verified by Orebridge — check their Certifications & tickets for supporting documents before proceeding."
+                          title="Self-declared by the candidate, not verified by FiFoDiDo — check their Certifications & tickets for supporting documents before proceeding."
                         >
                           🛂 Right to work: {r.rightToWorkCountries.map(countryName).join(", ")}
                         </p>

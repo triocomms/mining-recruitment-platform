@@ -24,13 +24,13 @@ export function HomeWorldMap({ counts }: { counts: Record<string, number> }) {
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
   return (
-    <section className="rounded-card bg-ink px-8 py-8 text-bone">
+    <section className="rounded-card border border-ink/10 bg-white px-8 py-8 text-ink">
       <div className="flex items-end justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl font-semibold uppercase tracking-wide">
             Hiring across the planet
           </h2>
-          <p className="mt-1 text-sm text-bone/60">
+          <p className="mt-1 text-sm text-ink/60">
             {total} live {total === 1 ? "role" : "roles"} in {countries}{" "}
             {countries === 1 ? "country" : "countries"} — hover a country, click through to its jobs.
           </p>
@@ -39,7 +39,7 @@ export function HomeWorldMap({ counts }: { counts: Record<string, number> }) {
       <div className="mt-4">
         <WorldJobsMap counts={counts} />
       </div>
-      <p className="mt-2 text-right text-[10px] text-bone/30">
+      <p className="mt-2 text-right text-[10px] text-ink/30">
         Map: Al MacDonald / Fritz Lekschas, CC BY-SA 3.0
       </p>
     </section>

@@ -5,7 +5,7 @@ import { WORLD_PATHS, WORLD_MAP_VIEWBOX } from "./world-map-paths";
 
 /**
  * Interactive world map of live jobs. Countries with live roles glow in
- * hi-vis amber (opacity scales with count); hover shows a tooltip and
+ * brand-primary teal (opacity scales with count); hover shows a tooltip and
  * clicking through lands on the pre-filtered jobs search.
  * Desktop-only by design — the wrapper never loads this chunk on mobile.
  */
@@ -50,9 +50,9 @@ export default function WorldJobsMap({ counts }: { counts: Record<string, number
             <path
               key={iso}
               d={d}
-              fill={hasJobs ? "#F5A300" : isHovered ? "#2A313C" : "#232932"}
+              fill={hasJobs ? "#0F6E56" : isHovered ? "#C9C7BC" : "#E1DFD6"}
               fillOpacity={intensity}
-              stroke={hasJobs ? (isHovered ? "#F5F3EE" : "#F5A300") : "#2F3742"}
+              stroke={hasJobs ? (isHovered ? "#085041" : "#0F6E56") : "#D3D1C7"}
               strokeWidth={hasJobs ? 0.8 : 0.5}
               className={hasJobs ? "cursor-pointer" : ""}
               style={{ transition: "fill-opacity 150ms, stroke 150ms" }}

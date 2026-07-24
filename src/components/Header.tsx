@@ -14,10 +14,11 @@ export async function Header() {
         : "/dashboard/candidate";
 
   return (
-    <header className="sticky top-0 z-40 border-b border-ink-line bg-ink text-bone">
+    <header className="sticky top-0 z-40 border-b border-ink-line bg-bone text-ink">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="font-display text-2xl font-bold uppercase tracking-wide">
-          Ore<span className="text-hivis">bridge</span>
+        {/* Temporary text wordmark until a proper logo is supplied. */}
+        <Link href="/" className="font-display text-2xl font-bold uppercase tracking-wide text-ink">
+          FiFoDiDo
         </Link>
         <nav className="flex items-center gap-2 text-sm sm:gap-4">
           <Link href="/jobs" className="rounded px-2 py-1 hover:text-hivis">Jobs</Link>

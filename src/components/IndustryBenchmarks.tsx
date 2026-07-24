@@ -29,13 +29,13 @@ export function IndustryBenchmarks() {
   return (
     <section className="mt-8 rounded-card border border-dashed border-ink/25 bg-bone-soft p-4 sm:p-6">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="tag">External data — not Orebridge job ads</span>
+        <span className="tag">External data — not FiFoDiDo job ads</span>
       </div>
       <h2 className="mt-3 font-display text-2xl uppercase tracking-wide">Industry benchmarks</h2>
       <p className="mt-2 max-w-2xl text-sm text-ink/70">
         Two public reference points for context while live job-ad data builds up: Australia&apos;s
         mining award minimums, and national average earnings by industry. Neither comes from
-        Orebridge listings — treat them as a floor and a broad average, not a substitute for the
+        FiFoDiDo listings — treat them as a floor and a broad average, not a substitute for the
         live ranges above once they appear.
       </p>
 

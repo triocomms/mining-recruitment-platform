@@ -97,7 +97,7 @@ export function JobFeedManager({ initialFeeds }: { initialFeeds: Feed[] }) {
   }
 
   async function removeFeed(feedId: string) {
-    if (!confirm("Remove this feed? Jobs already imported from it will stay on Orebridge.")) return;
+    if (!confirm("Remove this feed? Jobs already imported from it will stay on FiFoDiDo.")) return;
     const res = await fetch(`/api/jobs/feeds/${feedId}`, { method: "DELETE" });
     if (res.ok) setFeeds((prev) => prev.filter((f) => f.id !== feedId));
   }
