@@ -531,7 +531,7 @@ export function AdminEmailResendButton(props: { emailLogId: string }) {
     </div>
   );
 }
-\n
+
 export function AdminContactReplyForm({ messageId }: { messageId: string }) {
   const router = useRouter();
   const [reply, setReply] = useState("");
