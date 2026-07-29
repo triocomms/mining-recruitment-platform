@@ -212,10 +212,14 @@ export function AdminJobReviewQueue(props: { jobs: PendingReviewJob[] }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ approved: number; blockedUnresolvedCountry: number } | null>(null);
+  const [result, setResult] = useState<{ approved: number; unresolvedCountryApproved: number } | null>(null);
 
   const { jobs } = props;
-  const selectable = jobs.filter((j) => !j.unresolvedCountry);
+  // Admin bulk-approve is an explicit human review action, so jobs with
+  // an unresolved country (common for sitemap-sourced RSS imports, which
+  // have no location field at all) are still selectable - the "location
+  // unconfirmed" tag below just flags it for awareness.
+  const selectable = jobs;
   const allSelected = selectable.length > 0 && selected.size === selectable.length;
 
   function toggle(id: string) {
@@ -249,7 +253,7 @@ export function AdminJobReviewQueue(props: { jobs: PendingReviewJob[] }) {
     setBusy(false);
     if (res.ok) {
       setSelected(new Set());
-      setResult({ approved: data.approved ?? 0, blockedUnresolvedCountry: data.blockedUnresolvedCountry ?? 0 });
+      setResult({ approved: data.approved ?? 0, unresolvedCountryApproved: data.unresolvedCountryApproved ?? 0 });
       router.refresh();
     } else {
       setError(data.error ?? "Bulk approve failed");
@@ -275,8 +279,8 @@ export function AdminJobReviewQueue(props: { jobs: PendingReviewJob[] }) {
       {result && (
         <p className="mt-1 text-xs text-ink/60">
           {result.approved} approved
-          {result.blockedUnresolvedCountry > 0 &&
-            ` · ${result.blockedUnresolvedCountry} skipped (unresolved country — reject with a reason instead)`}
+          {result.unresolvedCountryApproved > 0 &&
+            ` · ${result.unresolvedCountryApproved} with unconfirmed location`}
         </p>
       )}
 
@@ -289,10 +293,9 @@ export function AdminJobReviewQueue(props: { jobs: PendingReviewJob[] }) {
                   type="checkbox"
                   className="mt-1 shrink-0"
                   checked={selected.has(j.id)}
-                  disabled={j.unresolvedCountry}
                   onChange={() => toggle(j.id)}
                   aria-label={`Select ${j.title}`}
-                  title={j.unresolvedCountry ? "Country couldn't be confirmed — can't be bulk approved" : undefined}
+                  title={j.unresolvedCountry ? "Location not auto-detected from this feed" : undefined}
                 />
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">{j.title}</p>
@@ -308,7 +311,7 @@ export function AdminJobReviewQueue(props: { jobs: PendingReviewJob[] }) {
                   {j.unresolvedCountry && (
                     <p className="mt-1 text-xs">
                       <span className="tag bg-oxide/15 text-oxide">
-                        country not detected — reject with a reason, can&apos;t approve as-is
+                        location not auto-detected from this feed
                       </span>
                     </p>
                   )}
