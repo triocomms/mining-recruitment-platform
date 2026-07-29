@@ -31,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <p className="mt-1">Jobs across the global mining and resources industry.</p>
             <nav className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
               <a href="/jobs" className="hover:text-ink">Browse jobs</a>
+              <a href="/contact" className="hover:text-ink">Contact us</a>
               <a href="/news" className="hover:text-ink">Industry news</a>
               <a href="/pricing" className="hover:text-ink">Employer pricing</a>
               <a href="/privacy" className="hover:text-ink">Privacy &amp; your data</a>
