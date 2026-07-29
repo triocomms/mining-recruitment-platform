@@ -75,23 +75,25 @@ export async function POST(req: NextRequest) {
     // check exists to close off. Blocked jobs stay in the queue; reject
     // them with a reason instead so the employer can fix the location.
     let approved = 0;
-    let blockedUnresolvedCountry = 0;
+    let unresolvedCountryApproved = 0;
     for (const job of jobs) {
-      if (jobHasUnresolvedFields(job)) {
-        blockedUnresolvedCountry++;
-        continue;
-      }
+      // Admin bulk-approve is an explicit human review action, not an
+      // automated pipeline - so an unresolved country (common for
+      // sitemap-sourced RSS imports, which have no location field at all)
+      // no longer blocks approval outright. It's still tracked/reported so
+      // an admin can see how many went out with an unconfirmed location.
+      if (jobHasUnresolvedFields(job)) unresolvedCountryApproved++;
       await approveJob(job, user.id);
       approved++;
     }
 
-    return NextResponse.json({
-      ok: true,
-      approved,
-      blockedUnresolvedCountry,
-      // already handled, deleted, or raced by the time we looked
-      skipped: d.jobIds.length - approved - blockedUnresolvedCountry,
-    });
+      return NextResponse.json({
+        ok: true,
+        approved,
+        unresolvedCountryApproved,
+        // already handled, deleted, or raced by the time we looked
+        skipped: d.jobIds.length - approved,
+      });
   }
 
   const job = await prisma.job.findUnique({
