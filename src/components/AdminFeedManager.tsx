@@ -85,7 +85,7 @@ export function AdminFeedManager({ initialFeeds }: { initialFeeds: Feed[] }) {
 
   async function syncNow(feedId: string) {
     setSyncingId(feedId);
-    const res = await fetch(\`/api/admin/feeds/\${feedId}/sync\`, { method: "POST" });
+    const res = await fetch(`/api/admin/feeds/${feedId}/sync`, { method: "POST" });
     const data = await res.json().catch(() => ({}));
     setSyncingId(null);
     if (res.ok) {
@@ -96,7 +96,7 @@ export function AdminFeedManager({ initialFeeds }: { initialFeeds: Feed[] }) {
 
   async function toggleStatus(feed: Feed) {
     const nextStatus = feed.status === "PAUSED" ? "ACTIVE" : "PAUSED";
-    const res = await fetch(\`/api/admin/feeds/\${feed.id}\`, {
+    const res = await fetch(`/api/admin/feeds/${feed.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: nextStatus }),
@@ -107,7 +107,7 @@ export function AdminFeedManager({ initialFeeds }: { initialFeeds: Feed[] }) {
 
   async function removeFeed(feedId: string) {
     if (!confirm("Remove this feed? Jobs already imported from it will stay on FiFoDiDo.")) return;
-    const res = await fetch(\`/api/admin/feeds/\${feedId}\`, { method: "DELETE" });
+    const res = await fetch(`/api/admin/feeds/${feedId}`, { method: "DELETE" });
     if (res.ok) setFeeds((prev) => prev.filter((f) => f.id !== feedId));
   }
 
@@ -175,17 +175,17 @@ export function AdminFeedManager({ initialFeeds }: { initialFeeds: Feed[] }) {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-semibold">
-                    <Link href={\`/companies/\${feed.company.slug}\`} className="hover:underline">
+                    <Link href={`/companies/${feed.company.slug}`} className="hover:underline">
                       {feed.company.name}
                     </Link>
                     {feed.company.verificationStatus === "VERIFIED" && (
                       <span className="ml-1.5 text-patina" title="Verified employer">✓</span>
                     )}
                   </p>
-                  <p className="text-xs text-ink/50">{feed.label ? \`\${feed.label} — \` : ""}{feed.url}</p>
+                  <p className="text-xs text-ink/50">{feed.label ? `${feed.label} — ` : ""}{feed.url}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={\`tag \${feed.status === "ERROR" ? "text-oxide" : ""}\`}>{feed.status}</span>
+                  <span className={`tag ${feed.status === "ERROR" ? "text-oxide" : ""}`}>{feed.status}</span>
                   <button
                     onClick={() => syncNow(feed.id)}
                     disabled={syncingId === feed.id}
