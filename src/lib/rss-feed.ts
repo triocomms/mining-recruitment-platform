@@ -55,30 +55,75 @@ export function parseFeedXml(xml: string): RawFeedItem[] {
   }
 
   const channel = doc?.rss?.channel;
-  if (!channel) throw new Error("Not a recognizable RSS 2.0 feed (missing <rss><channel>)");
+  if (channel) {
+    const rawItems = channel.item ? (Array.isArray(channel.item) ? channel.item : [channel.item]) : [];
+    if (rawItems.length === 0) return [];
 
-  const rawItems = channel.item ? (Array.isArray(channel.item) ? channel.item : [channel.item]) : [];
-  if (rawItems.length === 0) return [];
+    const text = (v: any): string | undefined => {
+      if (v == null) return undefined;
+      if (typeof v === "string") return v.trim() || undefined;
+      if (typeof v === "number" || typeof v === "boolean") return String(v);
+      if (typeof v === "object" && "__cdata" in v) return String(v.__cdata).trim() || undefined;
+      if (typeof v === "object" && "#text" in v) return String(v["#text"]).trim() || undefined;
+      return undefined;
+    };
 
-  const text = (v: any): string | undefined => {
-    if (v == null) return undefined;
-    if (typeof v === "string") return v.trim() || undefined;
-    if (typeof v === "number" || typeof v === "boolean") return String(v);
-    if (typeof v === "object" && "__cdata" in v) return String(v.__cdata).trim() || undefined;
-    if (typeof v === "object" && "#text" in v) return String(v["#text"]).trim() || undefined;
-    return undefined;
-  };
+    return rawItems.map((item: any) => ({
+      title: text(item.title) ?? "",
+      link: text(item.link),
+      guid: text(item.guid?.["#text"] ?? item.guid),
+      description: text(item.description),
+      gId: text(item["g:id"]),
+      gLocation: text(item["g:location"]),
+      gEmployer: text(item["g:employer"]),
+      gExpirationDate: text(item["g:expiration_date"]),
+    }));
+  }
 
-  return rawItems.map((item: any) => ({
-    title: text(item.title) ?? "",
-    link: text(item.link),
-    guid: text(item.guid?.["#text"] ?? item.guid),
-    description: text(item.description),
-    gId: text(item["g:id"]),
-    gLocation: text(item["g:location"]),
-    gEmployer: text(item["g:employer"]),
-    gExpirationDate: text(item["g:expiration_date"]),
-  }));
+  // Fallback: plain Google-style XML sitemap (<urlset><url><loc>...</loc></url></urlset>).
+  // Several large mining employers (SuccessFactors Career Site Builder, PageUp)
+  // only expose a job sitemap rather than an RSS feed. There's no
+  // description/location/date data to extract, but the URL slug itself is
+  // usually the job title (e.g. "/job/Senior-Electrical-Engineer-Perth/123456/"),
+  // which is enough for a lightweight import - normalizeFeedItem's needsReview
+  // flag correctly routes these to admin review since country/commodity can't
+  // be inferred from a bare slug.
+  const sitemapUrls = doc?.urlset?.url;
+  if (sitemapUrls) {
+    const rawUrls = Array.isArray(sitemapUrls) ? sitemapUrls : [sitemapUrls];
+    const items: RawFeedItem[] = [];
+    for (const u of rawUrls) {
+      const loc = typeof u === "string" ? u : u?.loc;
+      if (!loc || !/\/job\//i.test(loc)) continue; // skip non-job sitemap entries
+      const title = titleFromSitemapUrl(loc);
+      if (!title) continue;
+      items.push({ title, link: loc, guid: loc });
+    }
+    return items;
+  }
+
+  throw new Error("Not a recognizable RSS 2.0 feed or job sitemap");
+}
+
+/** Derive a job title from a sitemap job URL's slug, e.g.
+ *  "https://careers.bhp.com/job/Senior-Electrical-Engineer-Perth/123456/"
+ *  -> "Senior Electrical Engineer Perth". Strips a leading "job" segment and
+ *  a trailing numeric requisition-id segment when present. */
+function titleFromSitemapUrl(url: string): string | null {
+  try {
+    const path = new URL(url).pathname;
+    const segments = path.split("/").filter(Boolean).map(decodeURIComponent);
+    const withoutJob = segments[0]?.toLowerCase() === "job" ? segments.slice(1) : segments;
+    const withoutId =
+      withoutJob.length > 1 && /^\d+$/.test(withoutJob[withoutJob.length - 1])
+        ? withoutJob.slice(0, -1)
+        : withoutJob;
+    const slug = withoutId.join(" ");
+    if (!slug) return null;
+    return slug.replace(/-/g, " ").replace(/\s+/g, " ").trim();
+  } catch {
+    return null;
+  }
 }
 
 /** ---------- Field inference ---------- */
