@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 const patchSchema = z.object({
   status: z.enum(["ACTIVE", "PAUSED"]).optional(),
   label: z.string().trim().max(120).optional(),
+  url: z.string().trim().url().optional(),
 });
 
 /** Admin equivalent of /api/jobs/feeds/[feedId] — no ownership check, since
