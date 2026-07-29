@@ -645,6 +645,34 @@ model Report {
   createdAt  DateTime     @default(now())
 }
 
+// ─────────────────────────────────────────────── Support
+
+enum ContactMessageStatus {
+  NEW
+  REPLIED
+}
+
+// Public "Contact us" form submissions (see /contact and ContactForm.tsx).
+// Notifies mcdougallcomms@gmail.com by email on submission, with a link back
+// to the admin detail page below. Replies are sent from the platform's own
+// address (src/lib/email.ts), never from a personal inbox, and stored here
+// so the whole exchange stays visible to any admin, not just whoever replied.
+model ContactMessage {
+  id          String               @id @default(cuid())
+  name        String
+  email       String
+  subject     String
+  message     String
+  ipAddress   String?
+  status      ContactMessageStatus @default(NEW)
+  adminReply  String?
+  repliedById String?
+  repliedAt   DateTime?
+  createdAt   DateTime             @default(now())
+
+  @@index([status, createdAt])
+}
+
 // ─────────────────────────────────────────────── Admin audit trail
 
 model AdminAuditLog {
@@ -652,7 +680,7 @@ model AdminAuditLog {
   adminId    String
   admin      User     @relation("AuditAdmin", fields: [adminId], references: [id], onDelete: Cascade)
   action     String // e.g. "JOB_APPROVE", "USER_SUSPEND", "REFUND_ISSUE"
-  targetType String // "JOB" | "USER" | "COMPANY" | "REPORT" | "BLOG_POST" | "PAYMENT" | "CERTIFICATION" | "EMPLOYMENT_HISTORY"
+  targetType String // "JOB" | "USER" | "COMPANY" | "REPORT" | "BLOG_POST" | "PAYMENT" | "CERTIFICATION" | "EMPLOYMENT_HISTORY" | "CONTACT_MESSAGE"
   targetId   String
   notes      String?
   createdAt  DateTime @default(now())
