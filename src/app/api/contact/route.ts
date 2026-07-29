@@ -12,7 +12,7 @@ import { verifyTurnstileToken } from "@/lib/turnstile";
  * TURNSTILE_SECRET_KEY is configured, fails closed only on an explicit
  * "invalid token" from Cloudflare).
  *
- * Every submission notifies mcdougallcomms@gmail.com by email with a link
+ * Every submission notifies mcdougall6@gmail.com by email with a link
  * to the admin detail page -- replies are sent from there, from the
  * platform's own address, never from that personal inbox directly.
  */
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   // Best-effort: a notification failure must never fail the visitor's
   // submission -- the message is already safely stored either way.
   await sendEmail({
-    to: "mcdougallcomms@gmail.com",
+    to: "mcdougall6@gmail.com",
     subject: `New contact form message: ${d.subject}`,
     body: `${d.name} <${d.email}> sent a message via the Contact Us form:\n\n${d.message}\n\nRead and reply on the site:\n${adminLink}`,
     template: "CONTACT_MESSAGE",
