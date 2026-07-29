@@ -44,6 +44,7 @@ export function JobCard({
         {pretty(job.siteType) && <span className="tag">{pretty(job.siteType)}</span>}
         <span className="tag">{pretty(job.employmentType)}</span>
         {salary && <span className="tag !bg-patina/10 !text-patina">{salary}</span>}
+            {job.source === "RSS" && <span className="tag !bg-ink/5 !text-ink/50">Via company feed</span>}
       </div>
     </Link>
   );
