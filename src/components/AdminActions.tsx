@@ -531,3 +531,47 @@ export function AdminEmailResendButton(props: { emailLogId: string }) {
     </div>
   );
 }
+\n
+export function AdminContactReplyForm({ messageId }: { messageId: string }) {
+  const router = useRouter();
+  const [reply, setReply] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submitReply(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/admin/contact/${messageId}/reply`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reply }),
+    });
+    setBusy(false);
+    if (res.ok) {
+      setReply("");
+      router.refresh();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Action failed");
+    }
+  }
+
+  return (
+    <form onSubmit={submitReply} className="card space-y-2">
+      <textarea
+        className="field text-sm"
+        rows={5}
+        required
+        minLength={3}
+        placeholder="Write your reply to the sender..."
+        value={reply}
+        onChange={(e) => setReply(e.target.value)}
+      />
+      <button type="submit" className="btn-dark w-full" disabled={busy}>
+        {busy ? "Sending…" : "Send reply"}
+      </button>
+      {error && <p className="text-xs text-oxide">{error}</p>}
+    </form>
+  );
+}
