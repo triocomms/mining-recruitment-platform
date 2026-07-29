@@ -91,7 +91,25 @@ export async function syncJobFeed(feed: JobFeed): Promise<{ summary: FeedSyncSum
   const trusted = await companyIsTrusted(company.id, company.verificationStatus);
   const items = jobs.slice(0, MAX_ITEMS_PER_SYNC);
   const summary = { ...empty, fetched: items.length, skippedUnparseable: skipped };
-  const seenRefs: string[] = [];
+  const seenRefs = items.map((j) => j.externalRef);
+
+  // Expire previously-imported jobs from this feed that no longer appear
+  // in it *before* counting/creating - freeing a tier-cap slot the same
+  // run a stale duplicate disappears, and (importantly for large feeds
+  // whose full sync can exceed this route's time budget) making every
+  // retried/partial sync monotonic progress instead of getting stuck
+  // recreating the same few rows against a cap still held by rows that
+  // are about to expire anyway.
+  const expireResult = await prisma.job.updateMany({
+    where: {
+      companyId: company.id,
+      source: "RSS",
+      status: "PUBLISHED",
+      externalRef: { notIn: seenRefs.length > 0 ? seenRefs : ["__none__"] },
+    },
+    data: { status: "EXPIRED" },
+  });
+  summary.expiredNoLongerInFeed = expireResult.count;
 
   // How many jobs this company's plan tier allows in total (Bronze 25 /
   // Silver 50 / Gold 100), independent of the publish quota above — this
@@ -107,8 +125,6 @@ export async function syncJobFeed(feed: JobFeed): Promise<{ summary: FeedSyncSum
   });
 
   for (const job of items) {
-    seenRefs.push(job.externalRef);
-
     const existing = await prisma.job.findUnique({
       where: { companyId_externalRef: { companyId: company.id, externalRef: job.externalRef } },
     });
@@ -195,18 +211,6 @@ export async function syncJobFeed(feed: JobFeed): Promise<{ summary: FeedSyncSum
     else if (status === "DRAFT") summary.draftedOverQuota++;
     else summary.pendingReview++;
   }
-
-  // Expire previously-imported jobs from this feed that no longer appear in it.
-  const expireResult = await prisma.job.updateMany({
-    where: {
-      companyId: company.id,
-      source: "RSS",
-      status: "PUBLISHED",
-      externalRef: { notIn: seenRefs.length > 0 ? seenRefs : ["__none__"] },
-    },
-    data: { status: "EXPIRED" },
-  });
-  summary.expiredNoLongerInFeed = expireResult.count;
 
   return { summary };
 }
