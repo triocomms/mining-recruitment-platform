@@ -113,6 +113,27 @@ export async function syncJobFeed(feed: JobFeed): Promise<{ summary: FeedSyncSum
       where: { companyId_externalRef: { companyId: company.id, externalRef: job.externalRef } },
     });
     if (existing) {
+      // Re-syncing the same feed can surface richer data than we had
+      // last time (e.g. an admin repointing a company from a bare job
+      // sitemap to that same host's real RSS feed once discovered) -
+      // refresh the descriptive fields in place rather than leaving the
+      // row stuck with whatever we first captured. Deliberately leaves
+      // status/publishedAt/moderationFlags untouched so this never
+      // re-triggers moderation, quota, or publish-state changes.
+      await prisma.job.update({
+        where: { id: existing.id },
+        data: {
+          title: job.title,
+          description: job.description,
+          countryCode: job.countryCode ?? existing.countryCode,
+          region: job.region ?? existing.region,
+          city: job.city ?? existing.city,
+          commodity: job.commodity ?? existing.commodity,
+          fifo: job.fifo || existing.fifo,
+          rosterPattern: job.rosterPattern ?? existing.rosterPattern,
+          applyUrl: job.applyUrl ?? existing.applyUrl,
+        },
+      });
       summary.skippedDuplicates++;
       continue;
     }
