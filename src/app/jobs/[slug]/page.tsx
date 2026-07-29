@@ -116,6 +116,7 @@ export default async function JobPage({ params }: { params: { slug: string } }) 
             {job.company.name}
           </Link>
           {job.company.verificationStatus === "VERIFIED" && <span className="ml-1.5 text-patina">✓ Verified employer</span>}
+            {job.source === "RSS" && <span className="ml-1.5 text-ink/40">· synced from their official careers feed</span>}
         </p>
         <h1 className="mt-1 font-display text-3xl font-bold uppercase leading-tight tracking-tight sm:text-4xl">
           {job.title}
