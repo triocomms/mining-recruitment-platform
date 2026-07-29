@@ -76,6 +76,22 @@ export async function POST(req: NextRequest) {
       const companyId = sub.metadata?.companyId;
       const tier = sub.metadata?.tier as PlanTier | undefined;
       if (!companyId || !tier) break;
+
+      // Stripe API versions from 2025-03-31 onward moved current_period_end
+      // off the top-level Subscription object and onto each subscription
+      // item, as part of "flexible billing mode". Support both shapes so
+      // this keeps working regardless of which API version the webhook
+      // endpoint is configured with.
+      const periodEndUnix: number | null | undefined =
+        (sub as unknown as { current_period_end?: number }).current_period_end ??
+        (
+          sub.items?.data?.[0] as unknown as { current_period_end?: number } | undefined
+        )?.current_period_end;
+      const currentPeriodEnd =
+        typeof periodEndUnix === "number" && Number.isFinite(periodEndUnix)
+          ? new Date(periodEndUnix * 1000)
+          : null;
+
       await prisma.subscription.upsert({
         where: { companyId },
         create: {
@@ -84,13 +100,13 @@ export async function POST(req: NextRequest) {
           status: mapStatus(sub.status),
           stripeCustomerId: sub.customer as string,
           stripeSubscriptionId: sub.id,
-          currentPeriodEnd: new Date(sub.current_period_end * 1000),
+          currentPeriodEnd,
         },
         update: {
           tier,
           status: mapStatus(sub.status),
           stripeSubscriptionId: sub.id,
-          currentPeriodEnd: new Date(sub.current_period_end * 1000),
+          currentPeriodEnd,
         },
       });
       break;
