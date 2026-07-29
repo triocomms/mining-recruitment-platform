@@ -67,10 +67,11 @@ export default async function AdminDashboard() {
       prisma.job.count({ where: { status: "PUBLISHED" } }),
       prisma.application.count(),
       prisma.subscription.count({ where: { status: "ACTIVE" } }),
+      prisma.contactMessage.count({ where: { status: "NEW" } }),
     ]),
   ]);
 
-  const [users, liveJobs, applications, activeSubs] = stats;
+  const [users, liveJobs, applications, activeSubs, newContactMessages] = stats;
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
@@ -80,6 +81,7 @@ export default async function AdminDashboard() {
           <a href="/dashboard/admin/analytics" className="underline">Analytics</a>
           <a href="/dashboard/admin/emails" className="underline">Email</a>
           <a href="/dashboard/admin/audit" className="underline">Audit log</a>
+          <a href="/dashboard/admin/contact" className="underline">Contact messages{newContactMessages > 0 ? ` (${newContactMessages})` : ""}</a>
         </nav>
       </div>
 
