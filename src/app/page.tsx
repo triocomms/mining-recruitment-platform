@@ -14,7 +14,7 @@ const LATEST_ROLES_COUNT = 6;
 // homepage showing the same employer 6 times in a row. Fetching a wider
 // pool and capping how many come from any one company keeps this section
 // feeling like a cross-section of the site rather than one company's feed.
-const LATEST_ROLES_POOL_SIZE = 60;
+const LATEST_ROLES_POOL_SIZE = 300;
 const MAX_PER_COMPANY = 2;
 
 export default async function HomePage() {
