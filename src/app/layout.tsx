@@ -11,10 +11,27 @@ const display = Barlow_Condensed({
 });
 const body = Archivo({ subsets: ["latin"], variable: "--font-body" });
 
+const siteTitle = "FiFoDiDo — Mining & Resources Jobs Worldwide";
+const siteDescription =
+  "The global job board for mining and resources. FIFO, residential and international roles across gold, iron ore, lithium, copper and more.";
+
 export const metadata: Metadata = {
-  title: { default: "FiFoDiDo — Mining & Resources Jobs Worldwide", template: "%s · FiFoDiDo" },
-  description:
-    "The global job board for mining and resources. FIFO, residential and international roles across gold, iron ore, lithium, copper and more.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://www.fifodido.com"),
+  title: { default: siteTitle, template: "%s · FiFoDiDo" },
+  description: siteDescription,
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: siteTitle,
+    description: siteDescription,
+    url: "/",
+    siteName: "FiFoDiDo",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: siteTitle,
+    description: siteDescription,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
