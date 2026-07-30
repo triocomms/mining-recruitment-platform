@@ -4,16 +4,26 @@ import { JobCard } from "@/components/JobCard";
 import { HomeWorldMap } from "@/components/HomeWorldMap";
 import { FeaturedEmployerAd } from "@/components/FeaturedEmployerAd";
 import { FEATURES } from "@/lib/feature-flags";
+import { pickDiverseJobs } from "@/lib/utils";
 
 export const revalidate = 300;
 
+const LATEST_ROLES_COUNT = 6;
+// Bulk RSS imports publish dozens of jobs from one company within seconds
+// of each other, so pulling straight from a "latest N" query can leave the
+// homepage showing the same employer 6 times in a row. Fetching a wider
+// pool and capping how many come from any one company keeps this section
+// feeling like a cross-section of the site rather than one company's feed.
+const LATEST_ROLES_POOL_SIZE = 60;
+const MAX_PER_COMPANY = 2;
+
 export default async function HomePage() {
-  const [jobs, news, jobCount, countryCounts] = await Promise.all([
+  const [jobPool, news, jobCount, countryCounts] = await Promise.all([
     prisma.job.findMany({
       where: { status: "PUBLISHED" },
       include: { company: { select: { name: true, slug: true, verificationStatus: true } } },
       orderBy: [{ isPriority: "desc" }, { publishedAt: "desc" }],
-      take: 6,
+      take: LATEST_ROLES_POOL_SIZE,
     }),
     prisma.blogPost.findMany({
       where: { status: "PUBLISHED" },
@@ -24,6 +34,8 @@ export default async function HomePage() {
     prisma.job.count({ where: { status: "PUBLISHED" } }),
     prisma.job.groupBy({ by: ["countryCode"], where: { status: "PUBLISHED" }, _count: true }),
   ]);
+
+  const jobs = pickDiverseJobs(jobPool, LATEST_ROLES_COUNT, MAX_PER_COMPANY);
 
   const jobsByCountry = Object.fromEntries(
     countryCounts.map((c) => [c.countryCode, c._count])
