@@ -3,6 +3,7 @@ import { Barlow_Condensed, Archivo } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { ConsentBanner } from "@/components/ConsentBanner";
+import Script from "next/script";
 
 const display = Barlow_Condensed({
   subsets: ["latin"],
@@ -39,6 +40,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-WT4VT2DTYX"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-WT4VT2DTYX');
+          `}
+        </Script>
         <Header />
         <div className="strata" aria-hidden="true" />
         <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 sm:px-6">{children}</main>
