@@ -10,7 +10,7 @@ export function makeSlug(input: string) {
 /**
  * Sentinel used (RSS import, and now anywhere else that couldn't confidently
  * detect a country) when a real ISO 3166-1 code isn't known. Deliberately not
- * a real code, so it's unmistakable in the DB — but it must never reach a
+ * a real code, so it's unmistakable in the DB -- but it must never reach a
  * public page or a search engine. Use isUnresolvedCountry()/formatLocation()
  * below anywhere a countryCode gets displayed or fed into structured data.
  */
@@ -32,7 +32,7 @@ export function formatLocation(
 }
 
 /** De-dupes and formats a list of job locations for the /jobs search
- *  typeahead (P1.6) — suggestions are drawn straight from existing
+ *  typeahead (P1.6) -- suggestions are drawn straight from existing
  *  PUBLISHED job data, not a separate table. Preserves input order (callers
  *  pass rows already ordered newest-first) and drops anything that would
  *  render as "Location not specified". */
@@ -77,7 +77,7 @@ export function slugToCommodity(slug: string): string {
 }
 
 /** Below this many salaried ads, a group's numbers are too thin to call a
- * "typical" range — the /salaries pages show "not enough data" instead of a
+ * "typical" range -- the /salaries pages show "not enough data" instead of a
  * misleading average from one or two ads. */
 export const MIN_SALARY_SAMPLE_SIZE = 3;
 
@@ -119,4 +119,32 @@ export function timeAgo(date: Date) {
   if (s < 3600) return `${Math.max(1, Math.floor(s / 60))}m ago`;
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
+}
+
+/**
+ * Picks up to `limit` items from an already-sorted list, capping how many
+ * can come from the same company (`maxPerCompany`). A single company's bulk
+ * RSS import batch publishes dozens of jobs within seconds of each other,
+ * so a plain "latest N" query (e.g. the homepage's "Latest roles" section)
+ * can end up showing the same employer 6 times in a row. This walks the
+ * list in its existing order and just skips entries once a company's cap
+ * is hit, so recency ordering (and any earlier tie-breakers like Gold-tier
+ * priority) is preserved -- it only trims runs from the same company rather
+ * than reshuffling anything.
+ */
+export function pickDiverseJobs<T extends { companyId: string }>(
+  jobs: T[],
+  limit: number,
+  maxPerCompany: number
+): T[] {
+  const counts = new Map<string, number>();
+  const picked: T[] = [];
+  for (const job of jobs) {
+    const count = counts.get(job.companyId) ?? 0;
+    if (count >= maxPerCompany) continue;
+    counts.set(job.companyId, count + 1);
+    picked.push(job);
+    if (picked.length >= limit) break;
+  }
+  return picked;
 }
