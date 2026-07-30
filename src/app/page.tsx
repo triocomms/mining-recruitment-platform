@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { JobCard } from "@/components/JobCard";
 import { HomeWorldMap } from "@/components/HomeWorldMap";
 import { FeaturedEmployerAd } from "@/components/FeaturedEmployerAd";
+import { FEATURES } from "@/lib/feature-flags";
 
 export const revalidate = 300;
 
@@ -55,7 +56,7 @@ export default async function HomePage() {
         </div>
         </div>
 
-        <FeaturedEmployerAd />
+        {FEATURES.featuredEmployerAd && <FeaturedEmployerAd />}
       </section>
 
       <section>
