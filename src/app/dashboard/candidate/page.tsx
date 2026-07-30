@@ -8,6 +8,7 @@ import { JobCard } from "@/components/JobCard";
 import { DeleteSavedSearchButton } from "@/components/DeleteSavedSearchButton";
 import { SavedSearchFrequencyToggle } from "@/components/SavedSearchFrequencyToggle";
 import { PromoteMeCard } from "@/components/PromoteMeCard";
+import { FEATURES } from "@/lib/feature-flags";
 import type { Prisma } from "@prisma/client";
 
 const STATUS_TONE: Record<string, string> = {
@@ -279,7 +280,7 @@ export default async function CandidateDashboard() {
             )}
           </div>
 
-          <PromoteMeCard latest={profile.promotions[0] ?? null} />
+          {FEATURES.promoteMe && <PromoteMeCard latest={profile.promotions[0] ?? null} />}
 
           <div className="card border-ink/10 text-sm">
             <p className="font-semibold">Account settings</p>
