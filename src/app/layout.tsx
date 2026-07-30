@@ -20,6 +20,7 @@ export const metadata: Metadata = {
   title: { default: siteTitle, template: "%s · FiFoDiDo" },
   description: siteDescription,
   alternates: { canonical: "/" },
+  verification: { google: "mQBVVVZu2Q651GjgOI-Pm7LSfha1uEq_mcQ1-cWpwuU" },
   openGraph: {
     title: siteTitle,
     description: siteDescription,
