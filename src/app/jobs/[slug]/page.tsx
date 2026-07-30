@@ -3,7 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { formatSalary, formatLocation, isUnresolvedCountry, commodityToSlug } from "@/lib/utils";
-import { renderMarkdown } from "@/lib/markdown";
+import { renderMarkdown, stripMarkdown } from "@/lib/markdown";
 import { ApplyPanel } from "@/components/ApplyPanel";
 import { ReportJobButton } from "@/components/ReportJobButton";
 import { ShareJobButton } from "@/components/ShareJobButton";
@@ -58,6 +58,36 @@ function jobPostingJsonLd(job: any) {
     };
   }
   return data;
+}
+
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const job = await prisma.job.findUnique({
+    where: { slug: params.slug },
+    select: {
+      title: true,
+      description: true,
+      status: true,
+      city: true,
+      region: true,
+      countryCode: true,
+      company: { select: { name: true } },
+    },
+  });
+  if (!job || job.status === "DRAFT" || job.status === "ARCHIVED") {
+    return { title: "Job not found — FiFoDiDo" };
+  }
+  const location = formatLocation(job.city, job.region, job.countryCode);
+  const title = job.title + " at " + job.company.name + (location ? " — " + location : "") + " — FiFoDiDo";
+  const description = stripMarkdown(job.description).slice(0, 160);
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const url = base + "/jobs/" + params.slug;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, type: "website", url },
+    twitter: { card: "summary", title, description },
+  };
 }
 
 export const dynamic = "force-dynamic";
