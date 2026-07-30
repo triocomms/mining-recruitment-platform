@@ -74,10 +74,10 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     },
   });
   if (!job || job.status === "DRAFT" || job.status === "ARCHIVED") {
-    return { title: "Job not found — FiFoDiDo" };
+    return { title: "Job not found" };
   }
   const location = formatLocation(job.city, job.region, job.countryCode);
-  const title = job.title + " at " + job.company.name + (location ? " — " + location : "") + " — FiFoDiDo";
+  const title = job.title + " at " + job.company.name + (location ? " — " + location : "");
   const description = stripMarkdown(job.description).slice(0, 160);
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
   const url = base + "/jobs/" + params.slug;
