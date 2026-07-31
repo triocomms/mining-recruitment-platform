@@ -79,7 +79,7 @@ export default function PrivacyPage() {
           <h2 className="font-display text-2xl uppercase tracking-wide">Contact</h2>
           <p className="mt-2 text-sm leading-relaxed">
             Questions or requests we haven&rsquo;t automated yet? Email{" "}
-            <a href="mailto:privacy@fifodido.example" className="underline">privacy@fifodido.example</a>.
+            <a href="mailto:privacy@fifodido.com" className="underline">privacy@fifodido.com</a>.
             We respond to all data-rights requests within 30 days as required by law — usually much faster.
           </p>
         </div>
