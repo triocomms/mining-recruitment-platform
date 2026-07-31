@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Archivo } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
@@ -21,6 +21,7 @@ export const metadata: Metadata = {
   title: { default: siteTitle, template: "%s · FiFoDiDo" },
   description: siteDescription,
   alternates: { canonical: "/" },
+  manifest: "/manifest.webmanifest",
   verification: { google: "mQBVVVZu2Q651GjgOI-Pm7LSfha1uEq_mcQ1-cWpwuU" },
   openGraph: {
     title: siteTitle,
@@ -34,6 +35,10 @@ export const metadata: Metadata = {
     title: siteTitle,
     description: siteDescription,
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0F6E56",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
