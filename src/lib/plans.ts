@@ -49,6 +49,21 @@ export const FREE_DAILY_MESSAGE_CAP = 5;
 /** Reply cap inside existing threads for everyone (spam brake). */
 export const DAILY_MESSAGE_HARD_CAP = 200;
 
+/**
+ * Pre-launch early access: the candidate side of the marketplace is still
+ * thin (very few registered candidates, no organic applications yet), so a
+ * paid employer subscription can't deliver real value today. While this flag
+ * is on, every new employer subscription checkout (any tier) is created as a
+ * Stripe trial instead of billing immediately -- same plan, same features,
+ * $0 due today, and Stripe won't attempt a charge until the trial ends. This
+ * is a deliberate single toggle: flip EARLY_ACCESS_MODE to false once there's
+ * real candidate traction and the site is ready to charge from day one. No
+ * other code needs to change to turn it off.
+ */
+export const EARLY_ACCESS_MODE = true;
+/** Length of the free pre-launch trial applied while EARLY_ACCESS_MODE is on. */
+export const EARLY_ACCESS_TRIAL_DAYS = 90;
+
 /** Candidate "Promote Me" boost — one-time payment, surfaces the profile
  * above others in the employer resume database for a fixed window. Prices
  * match the schema comment on PromotionListing/PromotionTier. */
