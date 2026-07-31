@@ -66,7 +66,8 @@ export default async function AdminUsersPage({
     prisma.user.count({ where }),
   ]);
 
-  const scopeLabel = roleFilter ? ROLE_FILTERS.find((r) => r.value === roleFilter)!.label.toLowerCase() : "user";
+  const SINGULAR: Record<string, string> = { EMPLOYER: "employer", CANDIDATE: "candidate", ADMIN: "admin" };
+  const scopeLabel = roleFilter ? SINGULAR[roleFilter] : "user";
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
