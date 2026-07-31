@@ -14,11 +14,17 @@ export default withAuth(
     const roleHome =
       role === "EMPLOYER" ? "/dashboard/employer" : role === "ADMIN" ? "/dashboard/admin" : "/dashboard/candidate";
 
-    if (path.startsWith("/dashboard/candidate") && role !== "CANDIDATE") {
-      return NextResponse.redirect(new URL(roleHome, req.url));
-    }
-    if (path.startsWith("/dashboard/employer") && role !== "EMPLOYER") {
-      return NextResponse.redirect(new URL(roleHome, req.url));
+    // Admins can access every dashboard area (e.g. viewing a candidate
+    // profile via /dashboard/employer/candidates/[id] to support the admin
+    // "View profile" link) -- the role-prefix checks below are a UX
+    // convenience for CANDIDATE/EMPLOYER only, never a wall against ADMIN.
+    if (role !== "ADMIN") {
+      if (path.startsWith("/dashboard/candidate") && role !== "CANDIDATE") {
+        return NextResponse.redirect(new URL(roleHome, req.url));
+      }
+      if (path.startsWith("/dashboard/employer") && role !== "EMPLOYER") {
+        return NextResponse.redirect(new URL(roleHome, req.url));
+      }
     }
     if (path.startsWith("/dashboard/admin") && role !== "ADMIN") {
       return NextResponse.redirect(new URL(roleHome, req.url));
