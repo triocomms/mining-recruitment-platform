@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { timeAgo } from "@/lib/utils";
+import { PLANS } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -44,18 +45,22 @@ export default async function AdminSubscriptionsPage({
         {subs.map((s) => (
           <li key={s.id} className="card flex flex-wrap items-center justify-between gap-3 text-sm">
             <div className="min-w-0">
-              <Link href={`/companies/${s.company.slug}`} className="block truncate font-semibold hover:underline">
-                {s.company.name}
-              </Link>
+              <p className="truncate font-semibold">{s.company.name}</p>
               <p className="text-xs text-ink/60">
-                {s.tier.toLowerCase()} · {s.jobsUsedThisPeriod} ads used this period · since {timeAgo(s.createdAt)}
+                {s.jobsUsedThisPeriod} ads used this period · since {timeAgo(s.createdAt)}
               </p>
             </div>
-            <span className="tag">
-              {s.currentPeriodEnd
-                ? `renews ${s.currentPeriodEnd.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}`
-                : "no renewal date"}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={s.tier === "GOLD" ? "tag text-oregold" : "tag"}>{PLANS[s.tier].label}</span>
+              <span className="tag">
+                {s.currentPeriodEnd
+                  ? `renews ${s.currentPeriodEnd.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}`
+                  : "no renewal date"}
+              </span>
+              <Link href={`/companies/${s.company.slug}`} className="btn-ghost !px-3 !py-1.5 text-xs">
+                View company
+              </Link>
+            </div>
           </li>
         ))}
         {subs.length === 0 && <p className="card text-sm text-ink/60">No active subscriptions.</p>}
