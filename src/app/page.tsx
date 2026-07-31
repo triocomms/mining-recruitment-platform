@@ -6,6 +6,32 @@ import { FeaturedEmployerAd } from "@/components/FeaturedEmployerAd";
 import { FEATURES } from "@/lib/feature-flags";
 import { pickDiverseJobs } from "@/lib/utils";
 
+function organizationJsonLd() {
+  return {
+    "@context": "https://schema.org/",
+    "@type": "Organization",
+    name: "FiFoDiDo",
+    url: "https://www.fifodido.com",
+    logo: "https://www.fifodido.com/fifodido-logo.svg",
+    description:
+      "The global job board for mining and resources. FIFO, residential and international roles across gold, iron ore, lithium, copper and more.",
+  };
+}
+
+function websiteJsonLd() {
+  return {
+    "@context": "https://schema.org/",
+    "@type": "WebSite",
+    name: "FiFoDiDo",
+    url: "https://www.fifodido.com",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: "https://www.fifodido.com/jobs?q={search_term_string}",
+      "query-input": "required name=search_term_string",
+    },
+  };
+}
+
 export const revalidate = 300;
 
 const LATEST_ROLES_COUNT = 6;
@@ -43,6 +69,8 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-12">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd()) }} />
       <section className="flex items-start justify-between gap-8 pt-6 sm:pt-10">
         <div className="min-w-0">
         <p className="font-display text-sm font-semibold uppercase tracking-[0.2em] text-oxide">
