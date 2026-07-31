@@ -74,7 +74,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     },
   });
   if (!job || job.status === "DRAFT" || job.status === "ARCHIVED") {
-    return { title: "Job not found" };
+    return { title: "Job not found", robots: { index: false, follow: false } };
   }
   const location = formatLocation(job.city, job.region, job.countryCode);
   const title = job.title + " at " + job.company.name + (location ? " — " + location : "");
@@ -87,6 +87,10 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     alternates: { canonical: url },
     openGraph: { title, description, type: "website", url },
     twitter: { card: "summary", title, description },
+    // EXPIRED ads stay visible to users (closed banner, browsable) but must
+    // not linger in search results once the role is no longer open -- only
+    // a live PUBLISHED listing should be indexed.
+    robots: job.status === "PUBLISHED" ? undefined : { index: false, follow: false },
   };
 }
 
