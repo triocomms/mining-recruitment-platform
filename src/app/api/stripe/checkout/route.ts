@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { stripe, priceIdForEnv } from "@/lib/stripe";
-import { PLANS } from "@/lib/plans";
+import { PLANS, EARLY_ACCESS_MODE, EARLY_ACCESS_TRIAL_DAYS } from "@/lib/plans";
 import { PlanTier } from "@prisma/client";
 
 const schema = z.object({
@@ -35,7 +35,19 @@ export async function POST(req: NextRequest) {
       ...(customerId ? { customer: customerId } : { customer_email: user.email }),
       line_items: [{ price: priceIdForEnv(PLANS[d.tier].stripePriceEnv), quantity: 1 }],
       metadata: { companyId: company.id, tier: d.tier },
-      subscription_data: { metadata: { companyId: company.id, tier: d.tier } },
+      subscription_data: {
+        metadata: { companyId: company.id, tier: d.tier },
+        // Pre-launch: every new subscription starts as a free Stripe trial
+        // instead of billing immediately -- see EARLY_ACCESS_MODE in
+        // lib/plans.ts for why. Stripe still tracks it as a real
+        // subscription (status "trialing", which mapStatus() below already
+        // treats as ACTIVE), it just won't invoice until the trial ends.
+        ...(EARLY_ACCESS_MODE ? { trial_period_days: EARLY_ACCESS_TRIAL_DAYS } : {}),
+      },
+      // Don't force a card just to start a $0 trial -- Stripe will still
+      // collect one automatically before attempting the first real charge
+      // once the trial ends.
+      ...(EARLY_ACCESS_MODE ? { payment_method_collection: "if_required" as const } : {}),
       success_url: `${appUrl}/dashboard/employer/billing?checkout=success`,
       cancel_url: `${appUrl}/dashboard/employer/billing?checkout=cancelled`,
     });
