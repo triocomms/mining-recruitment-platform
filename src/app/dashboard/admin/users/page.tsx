@@ -4,10 +4,18 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { timeAgo } from "@/lib/utils";
 import { PLANS } from "@/lib/plans";
+import type { Role } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 30;
+
+const ROLE_FILTERS: { label: string; value: Role | null }[] = [
+  { label: "All", value: null },
+  { label: "Employers", value: "EMPLOYER" },
+  { label: "Candidates", value: "CANDIDATE" },
+  { label: "Admins", value: "ADMIN" },
+];
 
 function tierBadge(u: {
   role: string;
@@ -25,7 +33,7 @@ function tierBadge(u: {
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams: { page?: string };
+  searchParams: { page?: string; role?: string };
 }) {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
@@ -33,7 +41,10 @@ export default async function AdminUsersPage({
   const parsedPage = Number(searchParams.page ?? 1);
   const page = Math.max(1, Number.isFinite(parsedPage) ? Math.floor(parsedPage) : 1);
 
-  const where = { deletedAt: null } as const;
+  const roleFilter = ROLE_FILTERS.find((r) => r.value === searchParams.role)?.value ?? null;
+  const roleQuery = roleFilter ? `&role=${roleFilter}` : "";
+
+  const where = { deletedAt: null, ...(roleFilter ? { role: roleFilter } : {}) } as const;
 
   const [users, total] = await Promise.all([
     prisma.user.findMany({
@@ -55,13 +66,27 @@ export default async function AdminUsersPage({
     prisma.user.count({ where }),
   ]);
 
+  const scopeLabel = roleFilter ? ROLE_FILTERS.find((r) => r.value === roleFilter)!.label.toLowerCase() : "user";
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex items-end justify-between gap-3">
         <h1 className="font-display text-3xl uppercase tracking-wide">Users</h1>
         <Link href="/dashboard/admin" className="text-sm underline">← Admin dashboard</Link>
       </div>
-      <p className="mt-1 text-sm text-ink/60">{total} user{total === 1 ? "" : "s"} (excluding deleted accounts)</p>
+      <p className="mt-1 text-sm text-ink/60">{total} {scopeLabel}{total === 1 ? "" : "s"} (excluding deleted accounts)</p>
+
+      <nav className="mt-3 flex flex-wrap gap-2" aria-label="Filter by role">
+        {ROLE_FILTERS.map((r) => (
+          <Link
+            key={r.label}
+            href={r.value ? `?role=${r.value}` : "?"}
+            className={`tag ${roleFilter === r.value ? "bg-oregold/20 text-oregold" : ""}`}
+          >
+            {r.label}
+          </Link>
+        ))}
+      </nav>
 
       <ul className="mt-4 space-y-2">
         {users.map((u) => {
@@ -99,13 +124,13 @@ export default async function AdminUsersPage({
             </li>
           );
         })}
-        {users.length === 0 && <p className="card text-sm text-ink/60">No users found.</p>}
+        {users.length === 0 && <p className="card text-sm text-ink/60">No {scopeLabel}s found.</p>}
       </ul>
 
       {total > PAGE_SIZE && (
         <nav className="mt-6 flex justify-center gap-2" aria-label="Pagination">
-          {page > 1 && <a className="btn-ghost" href={`?page=${page - 1}`}>Previous</a>}
-          {page * PAGE_SIZE < total && <a className="btn-ghost" href={`?page=${page + 1}`}>Next</a>}
+          {page > 1 && <a className="btn-ghost" href={`?page=${page - 1}${roleQuery}`}>Previous</a>}
+          {page * PAGE_SIZE < total && <a className="btn-ghost" href={`?page=${page + 1}${roleQuery}`}>Next</a>}
         </nav>
       )}
     </main>
