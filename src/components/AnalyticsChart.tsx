@@ -4,6 +4,12 @@ import { useMemo, useState } from "react";
 
 export type ChartPoint = { date: string; value: number };
 
+const currencyFormatter = new Intl.NumberFormat("en", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+
 /**
  * Dependency-free SVG line/area chart for the analytics dashboard --
  * gridlines, start/end date labels, and a hover tooltip that snaps to the
@@ -11,17 +17,24 @@ export type ChartPoint = { date: string; value: number };
  * against a committed package-lock.json, so adding a new dependency safely
  * needs a proper npm install pass (regenerating the lockfile), not a hand
  * edit. A custom chart keeps this shippable today with no lockfile risk.
+ *
+ * `format` is a plain string, not a callback -- this is a Client Component
+ * rendered from a Server Component page, and functions can't cross that
+ * boundary as props (only serialisable values can), so the value formatter
+ * lives here instead of being passed in.
  */
 export function AnalyticsChart({
   points,
   color = "#b45309",
-  formatValue = (v: number) => String(v),
+  format = "number",
 }: {
   points: ChartPoint[];
   color?: string;
-  formatValue?: (v: number) => string;
+  format?: "number" | "currency";
 }) {
   const [hover, setHover] = useState<number | null>(null);
+
+  const formatValue = (v: number) => (format === "currency" ? currencyFormatter.format(v / 100) : String(v));
 
   const W = 600;
   const H = 120;
