@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { PLANS } from "@/lib/plans";
+import { PLANS, EARLY_ACCESS_MODE, EARLY_ACCESS_TRIAL_DAYS } from "@/lib/plans";
 import { getJobQuota } from "@/lib/quota";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import type { PlanTier } from "@prisma/client";
@@ -35,6 +35,14 @@ export default async function EmployerBillingPage({
       {searchParams.checkout === "cancelled" && (
         <p className="mt-4 rounded-md bg-bone px-4 py-3 text-sm text-ink/60">
           Checkout cancelled. No charge was made.
+        </p>
+      )}
+
+      {EARLY_ACCESS_MODE && !activeTier && (
+        <p className="mt-4 rounded-md border-2 border-oregold bg-oregold/10 px-4 py-3 text-sm text-ink/80">
+          <strong>Pre-launch offer:</strong> pick any plan below free for {EARLY_ACCESS_TRIAL_DAYS} days
+          — no card charged today. We'll email you well before the trial ends, so nothing bills
+          without notice.
         </p>
       )}
 
@@ -73,7 +81,17 @@ export default async function EmployerBillingPage({
                 {isCurrent ? (
                   <span className="tag bg-patina/15 text-patina">Current plan</span>
                 ) : (
-                  <CheckoutButton mode="SUBSCRIPTION" tier={tier} label={activeTier ? "Switch plan" : `Choose ${p.label}`} />
+                  <CheckoutButton
+                    mode="SUBSCRIPTION"
+                    tier={tier}
+                    label={
+                      activeTier
+                        ? "Switch plan"
+                        : EARLY_ACCESS_MODE
+                          ? `Start ${p.label} free`
+                          : `Choose ${p.label}`
+                    }
+                  />
                 )}
               </div>
             </div>
