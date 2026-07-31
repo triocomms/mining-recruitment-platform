@@ -1,5 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
 import type { Commodity } from "@prisma/client";
+import { COUNTRIES } from "@/lib/countries";
 
 /**
  * RSS/XML job feed parsing + normalization.
@@ -159,6 +160,11 @@ const COUNTRY_MAP: Record<string, string> = {
   guinea: "GN",
 };
 
+// Full ISO 3166-1 alpha-2 set (shared with the rest of the app via lib/countries.ts)
+// -- used to trust an exact trailing country-code segment in g:location even for
+// countries outside the small free-text COUNTRY_MAP below.
+const ISO_CODES = new Set(COUNTRIES.map((c) => c.code));
+
 const COMMODITY_KEYWORDS: [RegExp, Commodity][] = [
   [/\biron\s*ore\b/i, "IRON_ORE"],
   [/\bcoal\b|\bcoking\b|\bmetallurgical\s+coal\b/i, "COAL"],
@@ -179,10 +185,25 @@ const COMMODITY_KEYWORDS: [RegExp, Commodity][] = [
 const FIFO_RE = /\bFIFO\b/i;
 const ROSTER_RE = /\b(\d{1,2}\s?[\/x]\s?\d{1,2})\b/i;
 
-function guessCountryCode(...texts: (string | undefined)[]): string | null {
-  const hay = texts.filter(Boolean).join(" ").toLowerCase();
+function guessCountryCode(title: string | undefined, gLocation: string | undefined): string | null {
+  // Google Jobs / SuccessFactors feeds (e.g. the AMMAN feed) often encode
+  // structured location as "City, Region, ..., CC" with an ISO 3166-1
+  // alpha-2 country code as the final comma-separated segment. Check that
+  // first -- it is an exact, unambiguous signal that free-text matching
+  // below can't offer.
+  if (gLocation) {
+    const segments = gLocation.split(",").map((s) => s.trim());
+    const last = segments[segments.length - 1]?.toUpperCase();
+    if (last && ISO_CODES.has(last)) return last;
+  }
+
+  const hay = [title, gLocation].filter(Boolean).join(" ").toLowerCase();
   for (const [name, code] of Object.entries(COUNTRY_MAP)) {
-    if (hay.includes(name)) return code;
+    // Word-boundary match -- a plain substring check let "usa" match inside
+    // "Nusa Tenggara" (an Indonesian province name), which misclassified
+    // Indonesian AMMAN jobs as being located in the United States.
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (new RegExp("\\b" + escaped + "\\b", "i").test(hay)) return code;
   }
   return null;
 }
