@@ -117,7 +117,7 @@ export default function TermsPage() {
           <h2 className="font-display text-2xl uppercase tracking-wide">Contact</h2>
           <p className="mt-2 text-sm leading-relaxed">
             Questions about these terms? Email{" "}
-            <a href="mailto:legal@fifodido.example" className="underline">legal@fifodido.example</a>.
+            <a href="mailto:legal@fifodido.com" className="underline">legal@fifodido.com</a>.
           </p>
         </div>
       </section>
