@@ -77,12 +77,14 @@ export default async function AdminDashboard() {
     <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex items-end justify-between gap-3">
         <h1 className="font-display text-3xl uppercase tracking-wide">Admin</h1>
-        <nav className="flex gap-4 text-sm">
+        <nav className="flex flex-wrap gap-4 text-sm">
           <a href="/dashboard/admin/analytics" className="underline">Analytics</a>
           <a href="/dashboard/admin/emails" className="underline">Email</a>
           <a href="/dashboard/admin/audit" className="underline">Audit log</a>
           <a href="/dashboard/admin/contact" className="underline">Contact messages{newContactMessages > 0 ? ` (${newContactMessages})` : ""}</a>
           <a href="/dashboard/admin/feeds" className="underline">RSS feeds</a>
+          <a href="/dashboard/admin/users?role=EMPLOYER" className="underline">Employers</a>
+          <a href="/dashboard/admin/users?role=CANDIDATE" className="underline">Candidates</a>
         </nav>
       </div>
 
