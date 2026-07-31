@@ -1,0 +1,18 @@
+{
+  "name": "FiFoDiDo — Mining & Resources Jobs Worldwide",
+  "short_name": "FiFoDiDo",
+  "description": "The global job board for mining and resources — FIFO, residential and international roles across gold, iron ore, lithium, copper and more.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0F6E56",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
