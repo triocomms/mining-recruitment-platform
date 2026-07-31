@@ -14,7 +14,7 @@ export async function Header() {
         : "/dashboard/candidate";
 
   return (
-    <header className="sticky top-0 z-40 border-b border-ink-line bg-bone text-ink">
+    <header className="sticky top-0 z-40 border-b border-ink-line bg-bone text-ink print:hidden">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
         {/* Temporary text wordmark until a proper logo is supplied. */}
         <Link href="/" className="font-display text-2xl font-bold uppercase tracking-wide text-ink">
