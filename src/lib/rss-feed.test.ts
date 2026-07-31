@@ -91,6 +91,35 @@ describe("normalizeFeedItem", () => {
     expect(result!.needsReview).toBe(false);
   });
 
+  it("resolves a trailing ISO country code in g:location, taking priority over free-text matching", () => {
+    // SuccessFactors / Google Jobs feeds (e.g. AMMAN Mineral's) encode
+    // location as "City, Region, ..., CC" -- the AMMAN feed itself has no
+    // country *name* anywhere, only this trailing code.
+    const result = normalizeFeedItem({
+      title: "Supt. - Mechanical Af/Ac/Whr System/Sap (Sumbawa Barat, West Nusa Tengg, NB, ID)",
+      guid: "ext-amman-1",
+      gLocation: "Sumbawa Barat, West Nusa Tengg, NB, ID",
+    });
+    expect(result!.countryCode).toBe("ID");
+  });
+
+  it("does not misclassify Indonesian jobs as United States via a 'usa' substring inside 'Nusa Tenggara'", () => {
+    // Regression test: a plain hay.includes("usa") check matches the "usa"
+    // inside "Nusa Tenggara" (an Indonesian province name), which previously
+    // sent every AMMAN Mineral (Sumbawa, Indonesia) job to the site tagged
+    // as United States.
+    const result = normalizeFeedItem({
+      title: "Supt. - Shift Maintenance (Sumbawa Barat, West Nusa Tenggara)",
+      guid: "ext-amman-2",
+      gLocation: "Sumbawa Barat, West Nusa Tenggara",
+    });
+    // No country name or ISO code appears anywhere in this item, only the
+    // province name -- correctly falls back to null (review queue) rather
+    // than a wrong guess.
+    expect(result!.countryCode).not.toBe("US");
+    expect(result!.countryCode).toBeNull();
+  });
+
   it("flags needsReview when country or commodity can't be inferred", () => {
     const result = normalizeFeedItem({
       title: "Generalist Recruiter",
