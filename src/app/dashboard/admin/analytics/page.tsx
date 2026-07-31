@@ -51,7 +51,7 @@ function Metric(props: {
   prev: number;
   points: { date: string; value: number }[];
   color?: string;
-  formatValue?: (v: number) => string;
+  format?: "number" | "currency";
   invert?: boolean;
 }) {
   return (
@@ -61,7 +61,7 @@ function Metric(props: {
         <Delta curr={props.curr} prev={props.prev} invert={props.invert} />
       </div>
       <p className="font-display text-2xl">{props.total}</p>
-      <AnalyticsChart points={props.points} color={props.color} formatValue={props.formatValue} />
+      <AnalyticsChart points={props.points} color={props.color} format={props.format} />
     </div>
   );
 }
@@ -206,7 +206,7 @@ export default async function AdminAnalyticsPage({
           curr={latest?.mrrCents ?? 0}
           prev={prevLatest?.mrrCents ?? 0}
           points={series((s) => s.mrrCents)}
-          formatValue={money}
+          format="currency"
         />
         <Metric
           label="Churned subs"
@@ -223,7 +223,7 @@ export default async function AdminAnalyticsPage({
           curr={sum(stats, (s) => s.overageRevenueCents)}
           prev={sum(prevStats, (s) => s.overageRevenueCents)}
           points={series((s) => s.overageRevenueCents)}
-          formatValue={money}
+          format="currency"
         />
         <Metric
           label="Active subscriptions"
