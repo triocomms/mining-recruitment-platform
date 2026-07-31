@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PLANS } from "@/lib/plans";
+import { PLANS, EARLY_ACCESS_MODE, EARLY_ACCESS_TRIAL_DAYS } from "@/lib/plans";
 import type { PlanTier } from "@prisma/client";
 
 export const metadata = {
@@ -18,6 +18,18 @@ export default function PricingPage() {
         messaging cost nothing. Employers pay a flat monthly fee for job ad quota and hiring tools.
         Every new employer account includes <strong>one free job ad</strong> to try the platform.
       </p>
+
+      {EARLY_ACCESS_MODE && (
+        <div className="card mt-6 border-2 border-oregold bg-oregold/5">
+          <p className="label text-oregold">Pre-launch</p>
+          <p className="mt-1 text-sm text-ink/80">
+            You're one of the first to find FiFoDiDo. We're still pre-launch, so every new employer
+            account is <strong>free for {EARLY_ACCESS_TRIAL_DAYS} days</strong> on any plan below — no
+            card charged today. We'll email you well before the trial ends, so nothing bills without
+            notice.
+          </p>
+        </div>
+      )}
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         {(Object.keys(PLANS) as PlanTier[]).map((tier) => {
@@ -39,7 +51,7 @@ export default function PricingPage() {
                 <li className={p.priorityPlacement ? "" : "text-ink/40 line-through"}>Priority placement in search results</li>
               </ul>
               <Link href="/register?role=employer" className="btn-primary mt-4 text-center">
-                Start with a free ad
+                {EARLY_ACCESS_MODE ? "Start free — no charge today" : "Start with a free ad"}
               </Link>
             </div>
           );
@@ -76,6 +88,16 @@ export default function PricingPage() {
             Monthly quota resets each billing cycle. Pay-per-post credits, however, never expire.
           </p>
         </div>
+        {EARLY_ACCESS_MODE && (
+          <div className="card">
+            <p className="font-semibold">I signed up during pre-launch — when do I get charged?</p>
+            <p className="mt-1 text-sm text-ink/60">
+              Not for {EARLY_ACCESS_TRIAL_DAYS} days after you sign up, and only if you keep using the
+              account. We'll email you before the trial ends either way, and you can cancel any time
+              before then at no cost.
+            </p>
+          </div>
+        )}
       </section>
     </main>
   );
