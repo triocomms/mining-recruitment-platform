@@ -89,7 +89,7 @@ export async function backfillDays(days = 30) {
  * covers "this year so far" at FiFoDiDo's current age without risking a slow
  * first-load on a serverless function.
  */
-export const MAX_RANGE_DAYS = 180;
+export const MAX_RANGE_DAYS = 120;
 
 export type RangePreset = "7d" | "30d" | "90d" | "qtd" | "ytd" | "custom";
 
@@ -149,7 +149,12 @@ export async function getStatsRange(from: Date, to: Date) {
   for (let t = clampedStart.getTime(); t <= end.getTime(); t += dayMs) {
     if (t === today.getTime() || !have.has(t)) toCompute.push(t);
   }
-  const BATCH = 20;
+  // Small batches, not one big Promise.all -- rollupDay does several
+  // queries (plus a write) each, and a serverless function's DB connection
+  // pool can only take so many concurrent queries before Postgres itself
+  // starts rejecting/timing out connections. 5 at a time keeps a first-ever
+  // load of a wide range (e.g. "this year") reliable, just a bit slower.
+  const BATCH = 5;
   for (let i = 0; i < toCompute.length; i += BATCH) {
     await Promise.all(toCompute.slice(i, i + BATCH).map((t) => rollupDay(new Date(t))));
   }
