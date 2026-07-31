@@ -14,7 +14,7 @@ export function PrintButton() {
       type="button"
       onClick={() => window.print()}
       className="btn-ghost print:hidden"
-      title="Opens your browser's print dialog -- choose \"Save as PDF\" as the destination"
+      title={"Opens your browser's print dialog -- choose \"Save as PDF\" as the destination"}
     >
       Export PDF
     </button>
