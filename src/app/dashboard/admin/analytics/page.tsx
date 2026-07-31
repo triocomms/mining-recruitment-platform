@@ -83,10 +83,12 @@ export default async function AdminAnalyticsPage({
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   const { from, to, preset } = resolveRange(searchParams);
-  const [stats, prevStats] = await Promise.all([
-    getStatsRange(from, to),
-    getPreviousStatsRange(from, to),
-  ]);
+  // Sequential, not Promise.all -- each of these can itself fan out into a
+  // batch of rollupDay calls on a first-ever load of a wide range, so
+  // running both at once would double the peak concurrent DB load right
+  // when it's already highest.
+  const stats = await getStatsRange(from, to);
+  const prevStats = await getPreviousStatsRange(from, to);
 
   const series = (f: (s: (typeof stats)[number]) => number) =>
     stats.map((s) => ({ date: shortDate(s.date), value: f(s) }));
