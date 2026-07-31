@@ -3,10 +3,24 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { timeAgo } from "@/lib/utils";
+import { PLANS } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 30;
+
+function tierBadge(u: {
+  role: string;
+  company: { subscription: { tier: keyof typeof PLANS; status: string } | null } | null;
+}) {
+  if (u.role === "ADMIN") return { label: "Admin", className: "tag text-hivis" };
+  if (u.role === "CANDIDATE") return { label: "Candidate", className: "tag" };
+  const sub = u.company?.subscription;
+  if (sub && sub.status === "ACTIVE") {
+    return { label: PLANS[sub.tier].label, className: sub.tier === "GOLD" ? "tag text-oregold" : "tag" };
+  }
+  return { label: "No plan", className: "tag text-ink/40" };
+}
 
 export default async function AdminUsersPage({
   searchParams,
@@ -27,7 +41,16 @@ export default async function AdminUsersPage({
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      select: { id: true, email: true, role: true, createdAt: true, suspendedAt: true, emailVerifiedAt: true },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        suspendedAt: true,
+        emailVerifiedAt: true,
+        candidate: { select: { id: true } },
+        company: { select: { slug: true, subscription: { select: { tier: true, status: true } } } },
+      },
     }),
     prisma.user.count({ where }),
   ]);
@@ -41,22 +64,41 @@ export default async function AdminUsersPage({
       <p className="mt-1 text-sm text-ink/60">{total} user{total === 1 ? "" : "s"} (excluding deleted accounts)</p>
 
       <ul className="mt-4 space-y-2">
-        {users.map((u) => (
-          <li key={u.id} className="card flex flex-wrap items-center justify-between gap-3 text-sm">
-            <div className="min-w-0">
-              <p className="truncate font-semibold">{u.email}</p>
-              <p className="text-xs text-ink/60">
-                {u.role.toLowerCase()} · joined {timeAgo(u.createdAt)}
-                {!u.emailVerifiedAt && <span className="text-oxide"> · unverified</span>}
-              </p>
-            </div>
-            {u.suspendedAt ? (
-              <span className="tag text-oxide">suspended {timeAgo(u.suspendedAt)}</span>
-            ) : (
-              <span className="tag text-patina">active</span>
-            )}
-          </li>
-        ))}
+        {users.map((u) => {
+          const badge = tierBadge(u);
+          const profileHref =
+            u.role === "CANDIDATE" && u.candidate
+              ? `/dashboard/employer/candidates/${u.candidate.id}`
+              : u.role === "EMPLOYER" && u.company
+                ? `/companies/${u.company.slug}`
+                : null;
+          const profileLabel = u.role === "CANDIDATE" ? "View profile" : "View company";
+
+          return (
+            <li key={u.id} className="card flex flex-wrap items-center justify-between gap-3 text-sm">
+              <div className="min-w-0">
+                <p className="truncate font-semibold">{u.email}</p>
+                <p className="text-xs text-ink/60">
+                  {u.role.toLowerCase()} · joined {timeAgo(u.createdAt)}
+                  {!u.emailVerifiedAt && <span className="text-oxide"> · unverified</span>}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={badge.className}>{badge.label}</span>
+                {u.suspendedAt ? (
+                  <span className="tag text-oxide">suspended {timeAgo(u.suspendedAt)}</span>
+                ) : (
+                  <span className="tag text-patina">active</span>
+                )}
+                {profileHref && (
+                  <Link href={profileHref} className="btn-ghost !px-3 !py-1.5 text-xs">
+                    {profileLabel}
+                  </Link>
+                )}
+              </div>
+            </li>
+          );
+        })}
         {users.length === 0 && <p className="card text-sm text-ink/60">No users found.</p>}
       </ul>
 
