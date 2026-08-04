@@ -66,6 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <p className="font-display text-lg font-semibold uppercase tracking-wide text-ink">FiFoDiDo</p>
             <p className="mt-1">Jobs across the global mining and resources industry.</p>
             <nav className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
+              <a href="/about" className="hover:text-ink">About us</a>
               <a href="/jobs" className="hover:text-ink">Browse jobs</a>
               <a href="/contact" className="hover:text-ink">Contact us</a>
               <a href="/news" className="hover:text-ink">Industry news</a>
@@ -73,6 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <a href="/privacy" className="hover:text-ink">Privacy &amp; your data</a>
               <a href="/terms" className="hover:text-ink">Terms of Service</a>
             </nav>
+            <p className="mt-4 text-xs text-ink/40">[PLACEHOLDER: FiFoDiDo is operated by [Company Pty Ltd], ABN [00 000 000 000].]</p>
           </div>
         </footer>
         <ConsentBanner />
