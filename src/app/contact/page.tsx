@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { createElement as h } from "react";
-import ContactForm from "@/components/ContactForm";
+import { ContactForm } from "@/components/ContactForm";
 
 export const metadata: Metadata = {
   title: "Contact us",
