@@ -305,6 +305,7 @@ model Company {
   videoUrl           String? // YouTube/Vimeo link, embedded on the company page
   countryCode        String?
   size               String?
+miningSites     MiningSite[] // sites this company operates (optional, admin/employer-linked)
   verificationStatus VerificationStatus @default(UNVERIFIED)
   kybDocumentKey     String? // business registration doc for admin review
   kybNotes           String?
@@ -393,6 +394,8 @@ model Job {
   countryCode    String // ISO 3166-1 alpha-2 — global from day one
   region         String?
   city           String?
+siteId          String? // optional link to MiningSite for roster/camp/logistics data
+  site            MiningSite?    @relation(fields: [siteId], references: [id])
   salaryMin      Int?
   salaryMax      Int?
   salaryCurrency String? // ISO 4217: AUD, USD, CAD, ZAR, CLP...
@@ -769,4 +772,66 @@ model CompanyReview {
 
   @@unique([companyId, candidateId])
   @@index([companyId, status])
+}
+
+
+// ─────────────────────────────────────────────── Mining sites (roster, camp & logistics)
+
+enum SiteStatus {
+  DRAFT // seeded/edited but not yet shown publicly
+  PUBLISHED
+}
+
+enum AccessType {
+  FIFO
+  DIDO
+  RESIDENTIAL
+}
+
+// A physical mine site or project — distinct from Company (the operator or a
+// contractor posting jobs there). Several companies can post jobs against the
+// same site. Seeded manually for major sites initially (see docs/); employers
+// can also attach a job to an existing site or create a new one inline at
+// posting time. Kept deliberately flat (String[] for multi-value fields like
+// roster patterns and points of hire) rather than normalised into child
+// tables, matching the rest of this schema's style — see Job.moderationFlags,
+// Company.galleryKeys for the same pattern.
+model MiningSite {
+  id                  String      @id @default(cuid())
+  name                String
+  slug                String      @unique
+  operatorCompanyId   String?
+  operatorCompany     Company?    @relation(fields: [operatorCompanyId], references: [id])
+  commodity           Commodity?
+  countryCode         String // ISO 3166-1 alpha-2
+  region              String?
+  city                String?
+  lat                 Float?
+  lng                 Float?
+  status              SiteStatus  @default(DRAFT)
+
+  // Roster & access
+  rosterPatterns      String[]    @default([]) // e.g. ["8/6", "5/2", "2/1"]
+  accessType          AccessType?
+  charterOriginCities String[]    @default([])
+  pointsOfHire        String[]    @default([])
+  driveTimeFromTown   String? // free text, e.g. "45 min from Newman"
+
+  // Camp / facilities — kept loose until enough contributed data exists to
+  // justify a stricter structure.
+  roomType            String? // e.g. "single ensuite", "shared donga"
+  wifiNotes           String?
+  gym                 Boolean     @default(false)
+  pool                Boolean     @default(false)
+  foodNotes           String?
+  otherAmenities      String?
+
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  jobs                Job[]
+
+  @@index([status])
+  @@index([countryCode, region])
+  @@index([commodity])
 }
