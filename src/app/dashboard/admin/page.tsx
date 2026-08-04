@@ -83,6 +83,7 @@ export default async function AdminDashboard() {
           <a href="/dashboard/admin/audit" className="underline">Audit log</a>
           <a href="/dashboard/admin/contact" className="underline">Contact messages{newContactMessages > 0 ? ` (${newContactMessages})` : ""}</a>
           <a href="/dashboard/admin/feeds" className="underline">RSS feeds</a>
+          <a href="/dashboard/admin/sites" className="underline">Mining sites</a>
           <a href="/dashboard/admin/users?role=EMPLOYER" className="underline">Employers</a>
           <a href="/dashboard/admin/users?role=CANDIDATE" className="underline">Candidates</a>
         </nav>
