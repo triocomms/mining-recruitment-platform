@@ -13,7 +13,8 @@ export type AuditTargetType =
   | "PAYMENT"
   | "CERTIFICATION"
   | "EMPLOYMENT_HISTORY"
-  | "CONTACT_MESSAGE";
+  | "CONTACT_MESSAGE"
+| "MINING_SITE";
 
 export async function logAdminAction(
   adminId: string,
