@@ -7,6 +7,7 @@ import { renderMarkdown, stripMarkdown } from "@/lib/markdown";
 import { ApplyPanel } from "@/components/ApplyPanel";
 import { ReportJobButton } from "@/components/ReportJobButton";
 import { ShareJobButton } from "@/components/ShareJobButton";
+import { createElement as h } from "react";
 
 /** schema.org/JobPosting structured data for Google Jobs indexing. */
 function jobPostingJsonLd(job: any) {
@@ -99,7 +100,7 @@ export const dynamic = "force-dynamic";
 export default async function JobPage({ params }: { params: { slug: string } }) {
   const job = await prisma.job.findUnique({
     where: { slug: params.slug },
-    include: { company: true },
+    include: { company: true, site: true },
   });
   if (!job || job.status === "DRAFT" || job.status === "ARCHIVED") notFound();
 
@@ -170,6 +171,7 @@ export default async function JobPage({ params }: { params: { slug: string } }) 
             </Link>
           </p>
         )}
+        {job.site && h("div", { className: "mt-6 card space-y-2" }, h("h2", { className: "font-display text-lg uppercase tracking-wide" }, "Site & logistics \u2014 " + job.site.name), h("div", { className: "flex flex-wrap gap-1.5" }, ...job.site.rosterPatterns.map((r: string) => h("span", { key: r, className: "tag" }, r)), job.site.accessType && h("span", { className: "tag" }, pretty(job.site.accessType))), job.site.pointsOfHire.length > 0 && h("p", { className: "text-sm text-ink/70" }, "Point of hire: " + job.site.pointsOfHire.join(", ")), job.site.driveTimeFromTown && h("p", { className: "text-sm text-ink/70" }, job.site.driveTimeFromTown), (job.site.roomType || job.site.wifiNotes || job.site.foodNotes || job.site.gym || job.site.pool || job.site.otherAmenities) && h("p", { className: "text-sm text-ink/70" }, [job.site.roomType, job.site.wifiNotes, job.site.gym ? "Gym" : null, job.site.pool ? "Pool" : null, job.site.foodNotes, job.site.otherAmenities].filter(Boolean).join(" \u00b7 ")))}
         <div className="strata mt-6 max-w-[160px]" aria-hidden="true" />
         <div
           className="mt-6 max-w-none text-ink/90"
