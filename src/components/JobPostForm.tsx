@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { createElement as h } from "react";
 
 const COMMODITIES = ["GOLD","IRON_ORE","COAL","COPPER","LITHIUM","NICKEL","BAUXITE_ALUMINA","URANIUM","MINERAL_SANDS","RARE_EARTHS","ZINC_LEAD","OIL_GAS","OTHER"];
 const SITES = ["OPEN_PIT","UNDERGROUND","PROCESSING_PLANT","EXPLORATION","PORT_RAIL","SMELTER_REFINERY","WORKSHOP_MAINTENANCE","CORPORATE_OFFICE"];
@@ -14,7 +15,7 @@ function pretty(v: string) {
   return v.replaceAll("_", " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
 }
 
-export function JobPostForm(props: { canPublish: boolean }) {
+export function JobPostForm(props: { canPublish: boolean ; sites: { id: string; name: string; region: string | null; countryCode: string }[]}) {
   const router = useRouter();
   const [f, setF] = useState({
     title: "",
@@ -25,6 +26,7 @@ export function JobPostForm(props: { canPublish: boolean }) {
     employmentType: "FULL_TIME",
     commodity: "",
     siteType: "",
+    siteId: "",
     roleCategory: "",
     fifo: false,
     rosterPattern: "",
@@ -51,6 +53,7 @@ export function JobPostForm(props: { canPublish: boolean }) {
         employmentType: f.employmentType,
         commodity: f.commodity || undefined,
         siteType: f.siteType || undefined,
+        siteId: f.siteId || undefined,
         roleCategory: f.roleCategory || undefined,
         fifo: f.fifo,
         rosterPattern: f.rosterPattern || undefined,
@@ -120,6 +123,7 @@ export function JobPostForm(props: { canPublish: boolean }) {
             {SITES.map((v) => <option key={v} value={v}>{pretty(v)}</option>)}
           </select>
         </div>
+        {h("div", null, h("label", { className: "label", htmlFor: "j-siteid" }, "Mining site"), h("select", { id: "j-siteid", className: "field", value: f.siteId, onChange: (e: any) => setF({ ...f, siteId: e.target.value }) }, h("option", { value: "" }, "Not linked to a site"), ...props.sites.map((s) => h("option", { key: s.id, value: s.id }, s.name + (s.region ? " (" + s.region + ")" : "")))))}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
