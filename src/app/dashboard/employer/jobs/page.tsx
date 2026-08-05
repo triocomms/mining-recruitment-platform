@@ -28,6 +28,7 @@ export default async function EmployerJobsPage() {
     where: { companyId: company.id },
     orderBy: { createdAt: "desc" },
   });
+  const sites = await prisma.miningSite.findMany({ where: { status: "PUBLISHED" }, orderBy: { name: "asc" }, select: { id: true, name: true, region: true, countryCode: true } });
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
@@ -49,7 +50,7 @@ export default async function EmployerJobsPage() {
         <section>
           <h2 className="font-display text-xl uppercase tracking-wide">Post a job</h2>
           <div className="mt-3">
-            <JobPostForm canPublish={quota.canPublish} />
+            <JobPostForm canPublish={quota.canPublish} sites={sites} />
           </div>
         </section>
 
