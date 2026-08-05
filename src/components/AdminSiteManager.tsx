@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createElement as h, Fragment } from "react";
+import { createElement as h } from "react";
 
 const COMMODITIES = [
   "GOLD",
@@ -31,6 +31,14 @@ type Site = {
   accessType: string | null;
   rosterPatterns: string[];
   pointsOfHire: string[];
+  charterOriginCities: string[];
+  driveTimeFromTown: string | null;
+  roomType: string | null;
+  wifiNotes: string | null;
+  gym: boolean;
+  pool: boolean;
+  foodNotes: string | null;
+  otherAmenities: string | null;
   status: "DRAFT" | "PUBLISHED";
   operatorCompany: { id: string; name: string; slug: string } | null;
 };
@@ -45,6 +53,7 @@ function splitList(value: string): string[] {
 export function AdminSiteManager({ initialSites }: { initialSites: Site[] }) {
   const router = useRouter();
   const [sites, setSites] = useState(initialSites);
+  const [editingId, setEditingId] = useState(null as string | null);
   const [name, setName] = useState("");
   const [countryCode, setCountryCode] = useState("");
   const [region, setRegion] = useState("");
@@ -64,40 +73,8 @@ export function AdminSiteManager({ initialSites }: { initialSites: Site[] }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null as string | null);
 
-async function addSite(e: any) {
-  e.preventDefault();
-  setBusy(true);
-  setError(null);
-
-  const res = await fetch("/api/admin/sites", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name,
-      countryCode,
-      region: region || undefined,
-      city: city || undefined,
-      commodity: commodity || undefined,
-      accessType: accessType || undefined,
-      rosterPatterns: splitList(rosterPatterns),
-      pointsOfHire: splitList(pointsOfHire),
-      charterOriginCities: splitList(charterOriginCities),
-      driveTimeFromTown: driveTimeFromTown || undefined,
-      roomType: roomType || undefined,
-      wifiNotes: wifiNotes || undefined,
-      gym,
-      pool,
-      foodNotes: foodNotes || undefined,
-      otherAmenities: otherAmenities || undefined,
-    }),
-  });
-  const data = await res.json().catch(() => ({}));
-  setBusy(false);
-  if (!res.ok) {
-    setError(data.error ?? "Could not create site");
-    return;
-  }
-  setSites((prev) => [data.site, ...prev]);
+function resetForm() {
+  setEditingId(null);
   setName("");
   setCountryCode("");
   setRegion("");
@@ -114,12 +91,79 @@ async function addSite(e: any) {
   setPool(false);
   setFoodNotes("");
   setOtherAmenities("");
+}
+
+function startEdit(site: Site) {
+  setEditingId(site.id);
+  setName(site.name);
+  setCountryCode(site.countryCode);
+  setRegion(site.region ?? "");
+  setCity(site.city ?? "");
+  setCommodity(site.commodity ?? "");
+  setAccessType(site.accessType ?? "");
+  setRosterPatterns(site.rosterPatterns.join(", "));
+  setPointsOfHire(site.pointsOfHire.join(", "));
+  setCharterOriginCities(site.charterOriginCities.join(", "));
+  setDriveTimeFromTown(site.driveTimeFromTown ?? "");
+  setRoomType(site.roomType ?? "");
+  setWifiNotes(site.wifiNotes ?? "");
+  setGym(site.gym);
+  setPool(site.pool);
+  setFoodNotes(site.foodNotes ?? "");
+  setOtherAmenities(site.otherAmenities ?? "");
+  if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function submit(e: any) {
+  e.preventDefault();
+  setBusy(true);
+  setError(null);
+
+  const payload = {
+    name,
+    countryCode,
+    region: region || undefined,
+    city: city || undefined,
+    commodity: commodity || undefined,
+    accessType: accessType || undefined,
+    rosterPatterns: splitList(rosterPatterns),
+    pointsOfHire: splitList(pointsOfHire),
+    charterOriginCities: splitList(charterOriginCities),
+    driveTimeFromTown: driveTimeFromTown || undefined,
+    roomType: roomType || undefined,
+    wifiNotes: wifiNotes || undefined,
+    gym,
+    pool,
+    foodNotes: foodNotes || undefined,
+    otherAmenities: otherAmenities || undefined,
+  };
+
+  const url = editingId ? "/api/admin/sites/" + editingId : "/api/admin/sites";
+  const method = editingId ? "PATCH" : "POST";
+
+  const res = await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  setBusy(false);
+  if (!res.ok) {
+    setError(data.error ?? "Could not save site");
+    return;
+  }
+  if (editingId) {
+    setSites((prev) => prev.map((s) => (s.id === editingId ? data.site : s)));
+  } else {
+    setSites((prev) => [data.site, ...prev]);
+  }
+  resetForm();
   router.refresh();
 }
 
 async function toggleStatus(site: Site) {
   const nextStatus = site.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
-  const res = await fetch(`/api/admin/sites/${site.id}`, {
+  const res = await fetch("/api/admin/sites/" + site.id, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status: nextStatus }),
@@ -130,8 +174,9 @@ async function toggleStatus(site: Site) {
 
 async function removeSite(siteId: string) {
   if (!confirm("Delete this site? Jobs linked to it will keep their own details but lose the site link.")) return;
-  const res = await fetch(`/api/admin/sites/${siteId}`, { method: "DELETE" });
+  const res = await fetch("/api/admin/sites/" + siteId, { method: "DELETE" });
   if (res.ok) setSites((prev) => prev.filter((s) => s.id !== siteId));
+  if (editingId === siteId) resetForm();
 }
 
 return h(
@@ -139,8 +184,12 @@ return h(
   { className: "space-y-6" },
   h(
     "form",
-    { onSubmit: addSite, className: "card space-y-3" },
-    h("p", { className: "text-sm text-ink/60" }, "Add a mining site's roster, access and camp details. Fields left blank can be filled in later."),
+    { onSubmit: submit, className: "card space-y-3" },
+    h(
+      "p",
+      { className: "text-sm text-ink/60" },
+      editingId ? "Editing an existing site. Save changes or cancel below." : "Add a mining site's roster, access and camp details. Fields left blank can be filled in later."
+      ),
     h(
       "div",
       { className: "grid gap-3 sm:grid-cols-2" },
@@ -260,9 +309,19 @@ return h(
       ),
     error && h("p", { className: "text-sm text-oxide" }, error),
     h(
-      "button",
-      { type: "submit", disabled: busy, className: "btn-primary" },
-      busy ? "Adding…" : "Add site"
+      "div",
+      { className: "flex gap-2" },
+      h(
+        "button",
+        { type: "submit", disabled: busy, className: "btn-primary" },
+        busy ? "Saving\u2026" : editingId ? "Save changes" : "Add site"
+        ),
+      editingId &&
+      h(
+        "button",
+        { type: "button", onClick: resetForm, className: "btn-ghost" },
+        "Cancel"
+        )
       )
     ),
   h(
@@ -284,7 +343,7 @@ return h(
           h(
             "p",
             { className: "mt-1 text-sm text-ink/70" },
-            [site.commodity, site.accessType].filter(Boolean).join(" · ") || "No commodity/access set"
+            [site.commodity, site.accessType].filter(Boolean).join(" \u00b7 ") || "No commodity/access set"
             ),
           site.rosterPatterns.length > 0 &&
           h("p", { className: "mt-1 text-xs text-ink/50" }, "Rosters: " + site.rosterPatterns.join(", "))
@@ -293,6 +352,11 @@ return h(
           "div",
           { className: "flex items-center gap-2" },
           h("span", { className: "tag" }, site.status),
+          h(
+            "button",
+            { onClick: () => startEdit(site), className: "text-sm underline" },
+            "Edit"
+            ),
           h(
             "button",
             { onClick: () => toggleStatus(site), className: "btn-primary text-sm" },
