@@ -222,7 +222,7 @@ export function EmployerSiteManager({ initialSites }: { initialSites: Site[] }) 
         h("input", {
           type: "text",
           required: true,
-          placeholder: "Site name (e.g. South Flank �,
+          placeholder: "Site name (e.g. South Flank)",
           value: f.name,
           onChange: (e: any) => setF({ ...f, name: e.target.value }),
           className: "field sm:col-span-2",
