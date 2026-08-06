@@ -3,18 +3,7 @@
 import { useState } from "react";
 import { createElement as h } from "react";
 import { useRouter } from "next/navigation";
-
-export const RATING_CATEGORIES = [
-  { key: "rosterRotation", label: "Roster & rotation" },
-  { key: "accommodation", label: "Accommodation" },
-  { key: "food", label: "Food" },
-  { key: "downtimeFacilities", label: "Downtime & facilities" },
-  { key: "travelLogistics", label: "Travel & logistics" },
-  { key: "safetyCulture", label: "Safety culture" },
-  ] as const;
-
-type CategoryKey = (typeof RATING_CATEGORIES)[number]["key"];
-type Scores = Record<CategoryKey, number>;
+import { RATING_CATEGORIES, type Scores } from "@/lib/ratingCategories";
 
 const EMPTY_SCORES: Scores = {
     rosterRotation: 0,
