@@ -78,6 +78,7 @@ export default async function EmployerDashboard() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/dashboard/employer/jobs" className="btn-primary">Post a job</Link>
+          <Link href="/dashboard/employer/sites" className="btn-ghost">Mining sites</Link>
           <Link href="/dashboard/posts/new" className="btn-ghost">Write a news post</Link>
           <Link href="/dashboard/posts" className="btn-ghost">My posts</Link>
           <Link href="/dashboard/messages" className="btn-ghost">Messages</Link>
