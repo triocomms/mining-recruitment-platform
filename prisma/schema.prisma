@@ -811,6 +811,7 @@ model CompanyRating {
 enum SiteStatus {
   DRAFT // seeded/edited but not yet shown publicly
   PUBLISHED
+PENDING_REVIEW // employer created/edited, awaiting admin approval
 }
 
 enum AccessType {
@@ -858,6 +859,9 @@ model MiningSite {
   otherAmenities      String?
 
   createdAt           DateTime    @default(now())
+description       String? // long-form rich text, rendered from RichTextEditor markdown
+  heroImageKey      String? // single hero photo shown on the site detail page and, if set, the /sites directory
+  galleryKeys       String[]    @default([]) // additional photos, same pattern as Company.galleryKeys
   updatedAt           DateTime    @updatedAt
 
   jobs                Job[]
