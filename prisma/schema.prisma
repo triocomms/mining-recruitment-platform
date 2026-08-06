@@ -207,6 +207,7 @@ model CandidateProfile {
   threads           MessageThread[]
   promotions        PromotionListing[]
   companyReviews    CompanyReview[]
+  companyRatings    CompanyRating[]
   savedSearches     SavedSearch[]
 
   @@index([visibility])
@@ -309,6 +310,10 @@ miningSites     MiningSite[] // sites this company operates (optional, admin/emp
   verificationStatus VerificationStatus @default(UNVERIFIED)
   kybDocumentKey     String? // business registration doc for admin review
   kybNotes           String?
+// Employer opt-in/out for the candidate category star-rating widget (see
+// CompanyRating below) on their public company page. Defaults on since it
+// replaces the previously always-on CompanyReview UI.
+ratingsEnabled     Boolean            @default(true)
   createdAt          DateTime           @default(now())
 
   jobs           Job[]
@@ -319,6 +324,7 @@ miningSites     MiningSite[] // sites this company operates (optional, admin/emp
   threads        MessageThread[]
   overages       OveragePurchase[]
   reviews        CompanyReview[]
+ratings        CompanyRating[]
   jobFeeds       JobFeed[]
 
   @@index([verificationStatus])
@@ -772,6 +778,31 @@ model CompanyReview {
 
   @@unique([companyId, candidateId])
   @@index([companyId, status])
+}
+
+// ─────────────────────────────────────────────── Employer ratings (category star ratings)
+
+// Replaces the CompanyReview UI on the public company page. One row per
+// candidate per company; only candidates who've reached interview stage may
+// rate -- same eligibility rule as CompanyReview (see src/app/api/company-ratings/route.ts).
+// Each category scored 1-5 (1 = Poor, 5 = Excellent), validated at the API layer.
+model CompanyRating {
+  id                 String           @id @default(cuid())
+  companyId          String
+  company            Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  candidateId        String
+  candidate          CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  rosterRotation     Int // Roster & rotation, 1-5
+  accommodation      Int // Accommodation, 1-5
+  food               Int // Food, 1-5
+  downtimeFacilities Int // Downtime & facilities, 1-5
+  travelLogistics    Int // Travel & logistics, 1-5
+  safetyCulture      Int // Safety culture, 1-5
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([companyId, candidateId])
+  @@index([companyId])
 }
 
 

@@ -17,6 +17,7 @@ const schema = z.object({
     .optional()
     .refine((v) => !v || toVideoEmbedUrl(v) !== null, "Only YouTube or Vimeo links are supported"),
   kybDocumentKey: z.string().optional(), // submitting KYB moves status to PENDING
+  ratingsEnabled: z.boolean().optional(),
 });
 
 export async function PATCH(req: NextRequest) {

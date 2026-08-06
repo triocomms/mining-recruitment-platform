@@ -237,8 +237,10 @@ export default async function EmployerDashboard() {
               logoKey: company.logoKey,
               galleryKeys: company.galleryKeys,
               videoUrl: company.videoUrl ?? "",
+              ratingsEnabled: company.ratingsEnabled,
             }}
-          />
+            />
+            
         </div>
       </section>
     </main>
