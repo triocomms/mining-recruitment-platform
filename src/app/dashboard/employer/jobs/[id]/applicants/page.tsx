@@ -40,6 +40,7 @@ export default async function ApplicantsPage({ params }: { params: { id: string 
           user: { select: { email: true } },
         },
       },
+      interviewSlots: { orderBy: { startsAt: "asc" } },
     },
   });
 
@@ -67,6 +68,14 @@ export default async function ApplicantsPage({ params }: { params: { id: string 
             coverLetterKey: a.coverLetterKey,
             coverLetterName: a.coverLetterName,
             appliedAgo: timeAgo(a.createdAt),
+            interviewScheduledAt: a.interviewScheduledAt ? a.interviewScheduledAt.toISOString() : null,
+            interviewLocation: a.interviewLocation,
+            interviewSlots: a.interviewSlots.map((s) => ({
+              id: s.id,
+              startsAt: s.startsAt.toISOString(),
+              durationMinutes: s.durationMinutes,
+              location: s.location,
+            })),
             candidate: {
               id: a.candidate.id,
               name: `${a.candidate.firstName} ${a.candidate.lastName}`,
