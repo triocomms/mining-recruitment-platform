@@ -5,6 +5,7 @@ import { SaveSearchButton } from "@/components/SaveSearchButton";
 import { Typeahead } from "@/components/Typeahead";
 import { isUnresolvedCountry } from "@/lib/utils";
 import { Commodity, SiteExperience, Prisma } from "@prisma/client";
+import { getLocale, getDictionary } from "@/lib/i18n";
 
 export const metadata = { title: "Browse mining & resources jobs" };
 export const dynamic = "force-dynamic";
@@ -26,6 +27,9 @@ export default async function JobsPage({
     page?: string;
   };
 }) {
+  const locale = getLocale();
+  const dict = getDictionary(locale);
+  const t = dict.jobsFilter;
   const parsedPage = Number(searchParams.page ?? 1);
   const page = Math.max(1, Number.isFinite(parsedPage) ? Math.floor(parsedPage) : 1);
   const q = searchParams.q?.trim();
@@ -119,13 +123,18 @@ export default async function JobsPage({
   // dropdown honest regardless — never offer "ZZ" as something to filter by.
   const visibleCountries = countries.filter((c) => !isUnresolvedCountry(c.countryCode));
 
+  // Fallback for any enum value the dictionary doesn't (yet) cover -- keeps
+  // the filter usable in every language even if a future enum member is
+  // added to schema.prisma before its translation is.
   const pretty = (s: string) => s.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const commodityLabel = (c: string) => dict.enums.commodity[c] ?? pretty(c);
+  const siteLabel = (s: string) => dict.enums.siteExperience[s] ?? pretty(s);
 
   return (
     <div>
       <span className="rule-oxide mb-2" />
-      <h1 className="font-display text-3xl font-bold uppercase tracking-tight">Find your next role</h1>
-      <p className="mt-1 text-sm text-ink/60">{total} live {total === 1 ? "job" : "jobs"}</p>
+      <h1 className="font-display text-3xl font-bold uppercase tracking-tight">{t.heading}</h1>
+      <p className="mt-1 text-sm text-ink/60">{t.liveJobs(total)}</p>
 
       {/* Mobile-first filters: stacked selects, GET form so results are shareable */}
       <form className="card mt-4 grid grid-cols-2 gap-2 sm:grid-cols-6" method="GET">
@@ -133,7 +142,7 @@ export default async function JobsPage({
           name="q"
           type="title"
           defaultValue={q}
-          placeholder="Job title"
+          placeholder={t.jobTitlePlaceholder}
           className="field col-span-2 sm:col-span-2"
           ariaLabel="Job title"
         />
@@ -141,47 +150,46 @@ export default async function JobsPage({
           name="loc"
           type="location"
           defaultValue={loc}
-          placeholder="City, region, or country"
+          placeholder={t.locationPlaceholder}
           className="field col-span-2 sm:col-span-2"
-          ariaLabel="Location"
+          ariaLabel={t.locationAriaLabel}
         />
-        <select name="country" defaultValue={searchParams.country ?? ""} className="field col-span-1" aria-label="Country">
-          <option value="">All countries</option>
+        <select name="country" defaultValue={searchParams.country ?? ""} className="field col-span-1" aria-label={t.countryAriaLabel}>
+          <option value="">{t.allCountries}</option>
           {visibleCountries.map((c) => <option key={c.countryCode} value={c.countryCode}>{c.countryCode} ({c._count})</option>)}
         </select>
-        <select name="commodity" defaultValue={searchParams.commodity ?? ""} className="field col-span-1" aria-label="Commodity">
-          <option value="">All commodities</option>
-          {Object.values(Commodity).map((c) => <option key={c} value={c}>{pretty(c)}</option>)}
+        <select name="commodity" defaultValue={searchParams.commodity ?? ""} className="field col-span-1" aria-label={t.commodityAriaLabel}>
+          <option value="">{t.allCommodities}</option>
+          {Object.values(Commodity).map((c) => <option key={c} value={c}>{commodityLabel(c)}</option>)}
         </select>
-        <select name="site" defaultValue={searchParams.site ?? ""} className="field col-span-2 sm:col-span-2" aria-label="Site type">
-          <option value="">All site types</option>
-          {Object.values(SiteExperience).map((s) => <option key={s} value={s}>{pretty(s)}</option>)}
+        <select name="site" defaultValue={searchParams.site ?? ""} className="field col-span-2 sm:col-span-2" aria-label={t.siteAriaLabel}>
+          <option value="">{t.allSiteTypes}</option>
+          {Object.values(SiteExperience).map((s) => <option key={s} value={s}>{siteLabel(s)}</option>)}
         </select>
         <input
           type="number"
           name="minSalary"
           min={0}
           defaultValue={searchParams.minSalary ?? ""}
-          placeholder="Min salary"
+          placeholder={t.minSalaryPlaceholder}
           className="field col-span-1 sm:col-span-2"
-          aria-label="Minimum salary"
+          aria-label={t.minSalaryAriaLabel}
         />
         <input
           type="number"
           name="maxSalary"
           min={0}
           defaultValue={searchParams.maxSalary ?? ""}
-          placeholder="Max salary"
+          placeholder={t.maxSalaryPlaceholder}
           className="field col-span-1 sm:col-span-2"
-          aria-label="Maximum salary"
+          aria-label={t.maxSalaryAriaLabel}
         />
         <label className="col-span-2 flex items-center gap-2 text-sm sm:col-span-3">
-          <input type="checkbox" name="fifo" value="1" defaultChecked={searchParams.fifo === "1"} /> FIFO roles only
+          <input type="checkbox" name="fifo" value="1" defaultChecked={searchParams.fifo === "1"} /> {t.fifoOnly}
         </label>
-        <button className="btn-dark col-span-2 sm:col-span-3" type="submit">Filter</button>
+        <button className="btn-dark col-span-2 sm:col-span-3" type="submit">{t.filterButton}</button>
         <p className="col-span-2 text-xs text-ink/50 sm:col-span-6">
-          Salary filter compares figures as entered by employers — currencies and pay periods (hourly/daily/yearly)
-          aren&rsquo;t converted, so mixing them can give odd results.
+          {t.salaryDisclaimer}
         </p>
       </form>
 
@@ -200,15 +208,15 @@ export default async function JobsPage({
         {jobs.map((job) => <JobCard key={job.id} job={job} />)}
         {jobs.length === 0 && (
           <p className="card text-sm text-ink/60">
-            No jobs match those filters. Try removing a filter, or save this search from your dashboard to get alerts.
+            {t.noJobsMatch}
           </p>
         )}
       </div>
 
       {total > PAGE_SIZE && (
-        <nav className="mt-6 flex justify-center gap-2" aria-label="Pagination">
-          {page > 1 && <a className="btn-ghost" href={hrefForPage(page - 1)}>Previous</a>}
-          {page * PAGE_SIZE < total && <a className="btn-ghost" href={hrefForPage(page + 1)}>Next</a>}
+        <nav className="mt-6 flex justify-center gap-2" aria-label={t.paginationAriaLabel}>
+          {page > 1 && <a className="btn-ghost" href={hrefForPage(page - 1)}>{t.previous}</a>}
+          {page * PAGE_SIZE < total && <a className="btn-ghost" href={hrefForPage(page + 1)}>{t.next}</a>}
         </nav>
       )}
     </div>
