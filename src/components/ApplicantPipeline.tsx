@@ -25,6 +25,25 @@ const STAGE_TONE: Record<string, string> = {
 };
 
 type RejectionTemplate = { id: string; name: string; body: string };
+type InterviewSlot = { id: string; startsAt: string; durationMinutes: number; location: string | null };
+type SlotDraft = { date: string; duration: number; location: string };
+
+/** "Aug 12, 2:00 PM–2:30 PM" -- used for a still-pending offered time. */
+function formatSlotRange(startsAt: string, durationMinutes: number) {
+  const start = new Date(startsAt);
+  const end = new Date(start.getTime() + durationMinutes * 60_000);
+  const day = start.toLocaleDateString([], { month: "short", day: "numeric" });
+  const time = `${start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}–${end.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  })}`;
+  return `${day}, ${time}`;
+}
+
+/** "12 August 2026, 2:00 PM" -- used once a time is actually booked. */
+function formatConfirmed(startsAt: string) {
+  return new Date(startsAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+}
 
 type Applicant = {
   id: string;
@@ -36,6 +55,9 @@ type Applicant = {
   coverLetterKey: string | null;
   coverLetterName: string | null;
   appliedAgo: string;
+  interviewScheduledAt: string | null;
+  interviewLocation: string | null;
+  interviewSlots: InterviewSlot[];
   candidate: {
     id: string;
     name: string;
@@ -58,6 +80,11 @@ function ApplicantRow({ app, templates }: { app: Applicant; templates: Rejection
   const [rejecting, setRejecting] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [rejectionMessage, setRejectionMessage] = useState("");
+  const [scheduling, setScheduling] = useState(false);
+  const [slotDrafts, setSlotDrafts] = useState<SlotDraft[]>([{ date: "", duration: 30, location: "" }]);
+  const [schedulingBusy, setSchedulingBusy] = useState(false);
+  const [schedulingError, setSchedulingError] = useState<string | null>(null);
+  const [cancelingSlots, setCancelingSlots] = useState(false);
 
   async function patch(body: Record<string, unknown>) {
     const res = await fetch("/api/applications", {
@@ -126,6 +153,74 @@ function ApplicantRow({ app, templates }: { app: Applicant; templates: Rejection
       setError(e.message);
     } finally {
       setBusyNotes(false);
+    }
+  }
+
+  function openScheduling() {
+    setSlotDrafts([{ date: "", duration: 30, location: "" }]);
+    setSchedulingError(null);
+    setScheduling(true);
+  }
+
+  function addSlotDraft() {
+    setSlotDrafts((prev) => (prev.length >= 3 ? prev : [...prev, { date: "", duration: 30, location: "" }]));
+  }
+
+  function removeSlotDraft(i: number) {
+    setSlotDrafts((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function updateSlotDraft(i: number, patch: Partial<SlotDraft>) {
+    setSlotDrafts((prev) => prev.map((d, idx) => (idx === i ? { ...d, ...patch } : d)));
+  }
+
+  async function sendSlots() {
+    if (slotDrafts.some((d) => !d.date)) {
+      setSchedulingError("Pick a date and time for every slot.");
+      return;
+    }
+    setSchedulingBusy(true);
+    setSchedulingError(null);
+    try {
+      const res = await fetch("/api/interview-slots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          applicationId: app.id,
+          slots: slotDrafts.map((d) => ({
+            startsAt: new Date(d.date).toISOString(),
+            durationMinutes: d.duration,
+            location: d.location.trim() || undefined,
+          })),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Couldn't send interview times");
+      }
+      setScheduling(false);
+      router.refresh();
+    } catch (e: any) {
+      setSchedulingError(e.message);
+    } finally {
+      setSchedulingBusy(false);
+    }
+  }
+
+  async function cancelSlots() {
+    setCancelingSlots(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/interview-slots?applicationId=${app.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Couldn't cancel those times");
+      }
+      router.refresh();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setCancelingSlots(false);
     }
   }
 
@@ -199,10 +294,96 @@ function ApplicantRow({ app, templates }: { app: Applicant; templates: Rejection
             disabled={busyNotes || notes === savedNotes}
             onClick={saveNotes}
           >
-            {busyNotes ? "Savingâ¦" : "Save note"}
+            {busyNotes ? "Savingâ¦" : "Save note"}
           </button>
         </div>
       </div>
+
+      {app.interviewScheduledAt ? (
+        <div className="mt-3 rounded border border-patina/20 bg-patina/5 p-3 text-sm">
+          <p className="font-semibold text-patina">Interview scheduled</p>
+          <p className="mt-1 text-ink/80">{formatConfirmed(app.interviewScheduledAt)}</p>
+          {app.interviewLocation && <p className="text-ink/60">{app.interviewLocation}</p>}
+        </div>
+      ) : app.interviewSlots.length > 0 ? (
+        <div className="mt-3 rounded border border-ink-line p-3 text-sm">
+          <p className="font-semibold">Interview times sent — awaiting response</p>
+          <ul className="mt-1 space-y-0.5 text-ink/70">
+            {app.interviewSlots.map((s) => (
+              <li key={s.id}>
+                {formatSlotRange(s.startsAt, s.durationMinutes)}
+                {s.location ? ` · ${s.location}` : ""}
+              </li>
+            ))}
+          </ul>
+          <button type="button" className="btn-ghost mt-2 text-xs" disabled={cancelingSlots} onClick={cancelSlots}>
+            {cancelingSlots ? "Cancelling…" : "Cancel these times"}
+          </button>
+        </div>
+      ) : (
+        <button type="button" className="btn-ghost mt-3 text-sm" onClick={openScheduling}>
+          Schedule interview
+        </button>
+      )}
+
+      {scheduling && (
+        <div className="mt-3 rounded border border-ink-line p-3">
+          <p className="text-xs font-semibold text-ink/70">Propose interview times for {app.candidate.name}</p>
+          {slotDrafts.map((draft, i) => (
+            <div key={i} className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto_1fr_auto]">
+              <input
+                type="datetime-local"
+                className="field text-sm"
+                value={draft.date}
+                onChange={(e) => updateSlotDraft(i, { date: e.target.value })}
+                aria-label="Interview date and time"
+              />
+              <select
+                className="field text-sm"
+                value={draft.duration}
+                onChange={(e) => updateSlotDraft(i, { duration: Number(e.target.value) })}
+                aria-label="Interview duration"
+              >
+                <option value={15}>15 min</option>
+                <option value={30}>30 min</option>
+                <option value={45}>45 min</option>
+                <option value={60}>60 min</option>
+              </select>
+              <input
+                className="field text-sm"
+                placeholder="Video link, phone number, or address"
+                value={draft.location}
+                onChange={(e) => updateSlotDraft(i, { location: e.target.value })}
+              />
+              {slotDrafts.length > 1 && (
+                <button type="button" className="btn-ghost text-xs" onClick={() => removeSlotDraft(i)}>
+                  Remove
+                </button>
+              )}
+            </div>
+          ))}
+          {slotDrafts.length < 3 && (
+            <button type="button" className="btn-ghost mt-2 text-xs" onClick={addSlotDraft}>
+              + Add another time
+            </button>
+          )}
+          {schedulingError && <p className="mt-1 text-xs text-oxide">{schedulingError}</p>}
+          <div className="mt-2 flex gap-2">
+            <button type="button" className="btn-primary text-sm" disabled={schedulingBusy} onClick={sendSlots}>
+              {schedulingBusy ? "Sending…" : "Send times"}
+            </button>
+            <button
+              type="button"
+              className="btn-ghost text-sm"
+              disabled={schedulingBusy}
+              onClick={() => setScheduling(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {rejecting && (
         <div className="mt-3 rounded border border-oxide/20 bg-oxide/5 p-3">
           <p className="text-xs font-semibold text-ink/70">Reject {app.candidate.name}</p>

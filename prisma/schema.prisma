@@ -475,11 +475,36 @@ model Application {
   // picked from a RejectionTemplate (and optionally edited) or written
   // freeform. Null means the generic statusNotificationCopy() line was used.
   rejectionMessage String?
+  // Interview scheduling links (see InterviewSlot below): an employer offers
+  // one or more time slots, the candidate books one from their own
+  // dashboard. These two fields are the single source of truth once a slot
+  // is booked -- both the employer pipeline and the candidate dashboard read
+  // them directly rather than re-joining InterviewSlot, whose rows for this
+  // application are deleted the moment a booking is made.
+  interviewScheduledAt DateTime?
+  interviewLocation    String? // free text: video link, phone number, or on-site address
+  interviewSlots       InterviewSlot[]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
   @@unique([jobId, candidateId])
   @@index([candidateId, createdAt])
+}
+
+// A time slot an employer proposes for an interview; the candidate books one
+// via their scheduling link (see /api/interview-slots). Rows here represent
+// offers still awaiting a response -- once booked, they're deleted and the
+// winning time lives on Application.interviewScheduledAt/interviewLocation.
+model InterviewSlot {
+  id              String      @id @default(cuid())
+  applicationId   String
+  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  startsAt        DateTime
+  durationMinutes Int         @default(30)
+  location        String?
+  createdAt       DateTime    @default(now())
+
+  @@index([applicationId])
 }
 
 model JobBookmark {
