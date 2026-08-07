@@ -208,6 +208,7 @@ model CandidateProfile {
   promotions        PromotionListing[]
   companyReviews    CompanyReview[]
   companyRatings    CompanyRating[]
+  siteRatings       MiningSiteRating[]
   savedSearches     SavedSearch[]
 
   @@index([visibility])
@@ -909,8 +910,36 @@ description       String? // long-form rich text, rendered from RichTextEditor m
   updatedAt           DateTime    @updatedAt
 
   jobs                Job[]
+  ratings             MiningSiteRating[]
 
   @@index([status])
   @@index([countryCode, region])
   @@index([commodity])
+}
+
+// Site-level ratings, deliberately separate from CompanyRating: the same
+// operator can run a great site in one country and a rough one in another
+// (roster, climate, camp standard all vary by site, not by company), so
+// company reputation and site conditions must never be blended together or
+// used as a fallback for each other. Star-only, same as CompanyRating -- no
+// title/body/comment field. Eligibility mirrors CompanyRating: only
+// candidates who reached interview stage on a job tied to this specific site
+// may rate it (see src/app/api/site-ratings/route.ts).
+model MiningSiteRating {
+  id                 String           @id @default(cuid())
+  siteId             String
+  site               MiningSite       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  candidateId        String
+  candidate          CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  rosterRotation     Int // Roster & rotation, 1-5
+  accommodation      Int // Accommodation, 1-5
+  food               Int // Food, 1-5
+  downtimeFacilities Int // Downtime & facilities, 1-5
+  travelLogistics    Int // Travel & logistics, 1-5
+  safetyCulture      Int // Safety culture, 1-5
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([siteId, candidateId])
+  @@index([siteId])
 }
