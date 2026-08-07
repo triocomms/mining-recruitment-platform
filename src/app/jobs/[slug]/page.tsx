@@ -8,6 +8,7 @@ import { ApplyPanel } from "@/components/ApplyPanel";
 import { ReportJobButton } from "@/components/ReportJobButton";
 import { ShareJobButton } from "@/components/ShareJobButton";
 import { createElement as h } from "react";
+import { getLocale, getDictionary } from "@/lib/i18n";
 
 /** schema.org/JobPosting structured data for Google Jobs indexing. */
 function jobPostingJsonLd(job: any) {
@@ -133,6 +134,7 @@ export default async function JobPage({ params }: { params: { slug: string } }) 
     }
   }
 
+  const dict = getDictionary(getLocale()).apply;
   const pretty = (s?: string | null) => s?.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency, job.salaryPeriod);
   const closed = job.status === "EXPIRED";
@@ -191,6 +193,7 @@ export default async function JobPage({ params }: { params: { slug: string } }) 
           defaultResumeName={candidate?.resumeName ?? null}
           defaultCoverLetterKey={candidate?.coverLetterKey ?? null}
           defaultCoverLetterName={candidate?.coverLetterName ?? null}
+          dict={dict}
         />
         <div className="flex flex-wrap gap-2">
           <ShareJobButton title={job.title} companyName={job.company.name} />
