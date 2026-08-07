@@ -2,13 +2,20 @@
 
 import { useState } from "react";
 import Script from "next/script";
+import type { Dictionary } from "@/lib/i18n";
 
 // Cloudflare's widget script injects a hidden `cf-turnstile-response` input
 // into whichever <form> the .cf-turnstile div sits inside, so the submit
 // handler below can read it straight out of FormData like any other field.
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
-export function RegisterForm({ defaultRole }: { defaultRole: "CANDIDATE" | "EMPLOYER" }) {
+export function RegisterForm({
+  defaultRole,
+  dict,
+}: {
+  defaultRole: "CANDIDATE" | "EMPLOYER";
+  dict: Dictionary["register"];
+}) {
   const [role, setRole] = useState<"CANDIDATE" | "EMPLOYER">(defaultRole);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -48,14 +55,15 @@ export function RegisterForm({ defaultRole }: { defaultRole: "CANDIDATE" | "EMPL
   if (registeredEmail) {
     return (
       <div className="card mt-6 text-center">
-        <p className="font-display text-2xl uppercase tracking-wide">Check your inbox</p>
+        <p className="font-display text-2xl uppercase tracking-wide">{dict.checkInbox}</p>
         <p className="mt-2 text-sm text-ink/70">
-          We&rsquo;ve sent a verification link to <span className="font-semibold">{registeredEmail}</span>.
-          Click it to activate your account, then sign in.
+          {dict.verificationSentPre}<span className="font-semibold">{registeredEmail}</span>
+          {dict.verificationSentPost}
         </p>
         <p className="mt-3 text-xs text-ink/50">
-          Nothing arriving? Check spam, or use &ldquo;Resend verification email&rdquo; on the{" "}
-          <a href="/login" className="underline">sign-in page</a>.
+          {dict.nothingArrivingPre}
+          <a href="/login" className="underline">{dict.signInPageLink}</a>
+          {dict.nothingArrivingPost}
         </p>
       </div>
     );
@@ -75,7 +83,7 @@ export function RegisterForm({ defaultRole }: { defaultRole: "CANDIDATE" | "EMPL
               role === r ? "border-hivis bg-hivis/10" : "border-ink/20"
             }`}
           >
-            {r === "CANDIDATE" ? "I'm looking for work" : "I'm hiring"}
+            {r === "CANDIDATE" ? dict.imLookingForWork : dict.imHiring}
           </button>
         ))}
       </div>
@@ -83,44 +91,44 @@ export function RegisterForm({ defaultRole }: { defaultRole: "CANDIDATE" | "EMPL
       {role === "CANDIDATE" ? (
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="label" htmlFor="firstName">First name</label>
+            <label className="label" htmlFor="firstName">{dict.firstName}</label>
             <input id="firstName" name="firstName" required className="field" autoComplete="given-name" />
           </div>
           <div>
-            <label className="label" htmlFor="lastName">Last name</label>
+            <label className="label" htmlFor="lastName">{dict.lastName}</label>
             <input id="lastName" name="lastName" required className="field" autoComplete="family-name" />
           </div>
         </div>
       ) : (
         <div>
-          <label className="label" htmlFor="companyName">Company name</label>
+          <label className="label" htmlFor="companyName">{dict.companyName}</label>
           <input id="companyName" name="companyName" required className="field" autoComplete="organization" />
         </div>
       )}
 
       <div>
-        <label className="label" htmlFor="email">Email</label>
+        <label className="label" htmlFor="email">{dict.email}</label>
         <input id="email" name="email" type="email" required className="field" autoComplete="email" />
       </div>
       <div>
-        <label className="label" htmlFor="password">Password</label>
+        <label className="label" htmlFor="password">{dict.password}</label>
         <input id="password" name="password" type="password" required minLength={10} className="field" autoComplete="new-password" />
-        <p className="mt-1 text-xs text-ink/50">At least 10 characters.</p>
+        <p className="mt-1 text-xs text-ink/50">{dict.passwordHint}</p>
       </div>
 
       <fieldset className="space-y-2 text-sm">
         <legend className="sr-only">Consent</legend>
         <label className="flex items-start gap-2">
           <input type="checkbox" name="acceptTerms" required className="mt-0.5" />
-          <span>I accept the <a href="/terms" className="underline">Terms of Service</a></span>
+          <span>{dict.acceptTermsPre}<a href="/terms" className="underline">{dict.termsOfService}</a></span>
         </label>
         <label className="flex items-start gap-2">
           <input type="checkbox" name="acceptPrivacy" required className="mt-0.5" />
-          <span>I have read the <a href="/privacy" className="underline">Privacy Policy</a> and understand how my data is used</span>
+          <span>{dict.acceptPrivacyPre}<a href="/privacy" className="underline">{dict.privacyPolicy}</a>{dict.acceptPrivacyPost}</span>
         </label>
         <label className="flex items-start gap-2 text-ink/70">
           <input type="checkbox" name="marketingOptIn" className="mt-0.5" />
-          <span>Email me job alerts and industry news (optional — change anytime)</span>
+          <span>{dict.marketingOptIn}</span>
         </label>
       </fieldset>
 
@@ -133,7 +141,7 @@ export function RegisterForm({ defaultRole }: { defaultRole: "CANDIDATE" | "EMPL
 
       {error && <p className="text-sm text-oxide" role="alert">{error}</p>}
       <button type="submit" disabled={busy} className="btn-primary w-full disabled:opacity-50">
-        {busy ? "Creating account…" : "Create account"}
+        {busy ? dict.creatingAccount : dict.createAccount}
       </button>
     </form>
   );
