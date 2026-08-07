@@ -326,6 +326,7 @@ ratingsEnabled     Boolean            @default(true)
   reviews        CompanyReview[]
 ratings        CompanyRating[]
   jobFeeds       JobFeed[]
+  rejectionTemplates RejectionTemplate[]
 
   @@index([verificationStatus])
 }
@@ -352,6 +353,20 @@ model JobFeed {
   createdAt     DateTime      @default(now())
 
   @@index([status])
+}
+
+// ─────────────────────────────────────────────── Rejection templates
+
+model RejectionTemplate {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String // employer's own label, e.g. "Not enough site experience"
+  body      String // the message sent to the candidate, editable per-use before sending
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
 }
 
 // ─────────────────────────────────────────────── Jobs
@@ -456,6 +471,10 @@ model Application {
   // if later rejected, so review eligibility reflects "ever reached
   // interview stage" rather than the current (possibly overwritten) status.
   interviewedAt DateTime?
+  // The message actually sent to the candidate when rejected -- either
+  // picked from a RejectionTemplate (and optionally edited) or written
+  // freeform. Null means the generic statusNotificationCopy() line was used.
+  rejectionMessage String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
