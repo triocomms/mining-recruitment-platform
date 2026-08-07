@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import type { Dictionary } from "@/lib/i18n";
 
-export function LoginForm() {
+export function LoginForm({ dict }: { dict: Dictionary["login"] }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -36,14 +37,10 @@ export function LoginForm() {
     if (res?.error) {
       if (res.error.includes("UNVERIFIED")) {
         setUnverifiedEmail(String(f.get("email")));
-        setError("Please confirm your email address first — check your inbox for the verification link.");
+        setError(dict.errUnverified);
       } else {
         setUnverifiedEmail(null);
-        setError(
-          res.error.includes("SUSPENDED")
-            ? "This account has been suspended. Contact support if you believe this is a mistake."
-            : "Email or password is incorrect"
-        );
+        setError(res.error.includes("SUSPENDED") ? dict.errSuspended : dict.errIncorrect);
       }
     } else {
       router.push("/dashboard/candidate");
@@ -54,13 +51,13 @@ export function LoginForm() {
   return (
     <form onSubmit={onSubmit} className="card mt-6 space-y-4">
       <div>
-        <label className="label" htmlFor="email">Email</label>
+        <label className="label" htmlFor="email">{dict.emailLabel}</label>
         <input id="email" name="email" type="email" required className="field" autoComplete="email" />
       </div>
       <div>
         <div className="flex items-center justify-between">
-          <label className="label" htmlFor="password">Password</label>
-          <a href="/forgot-password" className="text-xs font-semibold text-oxide underline">Forgot password?</a>
+          <label className="label" htmlFor="password">{dict.passwordLabel}</label>
+          <a href="/forgot-password" className="text-xs font-semibold text-oxide underline">{dict.forgotPassword}</a>
         </div>
         <input id="password" name="password" type="password" required className="field" autoComplete="current-password" />
       </div>
@@ -72,11 +69,11 @@ export function LoginForm() {
           disabled={resendState === "sending" || resendState === "sent"}
           onClick={resendVerification}
         >
-          {resendState === "sent" ? "✓ Verification email sent — check your inbox" : resendState === "sending" ? "Sending…" : "Resend verification email"}
+          {resendState === "sent" ? dict.resendSent : resendState === "sending" ? dict.resendSending : dict.resendVerification}
         </button>
       )}
       <button type="submit" disabled={busy} className="btn-primary w-full disabled:opacity-50">
-        {busy ? "Signing in…" : "Sign in"}
+        {busy ? dict.signingIn : dict.signIn}
       </button>
     </form>
   );
