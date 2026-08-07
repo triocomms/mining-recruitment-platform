@@ -39,6 +39,16 @@ describe("statusNotificationCopy", () => {
     expect(copy!.body.length).toBeLessThan(160);
     expect(copy!.body).toContain("Dragline Operator");
   });
+
+  it("uses the employer's own rejectionMessage when one is provided", () => {
+    const copy = statusNotificationCopy("REJECTED", "Dragline Operator", "Peabody", "Thanks for applying -- we went with a candidate with more haul truck hours.");
+    expect(copy!.body).toBe("Thanks for applying -- we went with a candidate with more haul truck hours.");
+  });
+
+  it("falls back to the generic REJECTED line when rejectionMessage is blank", () => {
+    const copy = statusNotificationCopy("REJECTED", "Dragline Operator", "Peabody", "   ");
+    expect(copy!.body).toContain("Peabody has moved forward");
+  });
 });
 
 describe("truncateForPreview", () => {
