@@ -2,7 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createElement as h } from "react";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { JobCard } from "@/components/JobCard";
+import { MiningSiteRatingForm } from "@/components/MiningSiteRatingForm";
+import { RATING_CATEGORIES } from "@/lib/ratingCategories";
 import { isUnresolvedCountry } from "@/lib/utils";
 import { renderMarkdown } from "@/lib/markdown";
 
@@ -42,6 +45,16 @@ export default async function SitePage({ params }: { params: { slug: string } })
         orderBy: [{ isPriority: "desc" }, { publishedAt: "desc" }],
         include: { company: { select: { name: true, slug: true, verificationStatus: true } } },
       },
+      ratings: {
+        select: {
+          rosterRotation: true,
+          accommodation: true,
+          food: true,
+          downtimeFacilities: true,
+          travelLogistics: true,
+          safetyCulture: true,
+        },
+      },
     },
   });
   if (!site || site.status !== "PUBLISHED") notFound();
@@ -57,6 +70,57 @@ export default async function SitePage({ params }: { params: { slug: string } })
   ].filter(Boolean);
   const hasLogisticsDetail =
     site.pointsOfHire.length > 0 || site.charterOriginCities.length > 0 || Boolean(site.driveTimeFromTown) || campDetails.length > 0;
+
+  // Ratings here are scoped to this site only -- never blended with, or
+  // averaged against, the site operator's CompanyRating. A company can run a
+  // strong site in one country and a rough one in another, so site
+  // conditions and company reputation are tracked and shown independently.
+  const ratingCount = site.ratings.length;
+  const categoryAverages = RATING_CATEGORIES.map((c) => ({
+    ...c,
+    avg: ratingCount > 0 ? site.ratings.reduce((a: number, r: any) => a + r[c.key], 0) / ratingCount : null,
+  }));
+  const overallAvg =
+    ratingCount > 0 ? categoryAverages.reduce((a, c) => a + (c.avg ?? 0), 0) / categoryAverages.length : null;
+
+  // Same eligibility bar as CompanyRating: the candidate must have reached
+  // interview stage on an application for a job tied to this specific site --
+  // not just any job at the operating company.
+  const session = await auth();
+  let raterState: {
+    eligible: boolean;
+    existing: {
+      rosterRotation: number;
+      accommodation: number;
+      food: number;
+      downtimeFacilities: number;
+      travelLogistics: number;
+      safetyCulture: number;
+    } | null;
+  } = { eligible: false, existing: null };
+  if (session?.user.role === "CANDIDATE") {
+    const candidate = await prisma.candidateProfile.findUnique({ where: { userId: session.user.id } });
+    if (candidate) {
+      const interviewed = await prisma.application.findFirst({
+        where: { candidateId: candidate.id, job: { siteId: site.id }, interviewedAt: { not: null } },
+        select: { id: true },
+      });
+      if (interviewed) {
+        const existing = await prisma.miningSiteRating.findUnique({
+          where: { siteId_candidateId: { siteId: site.id, candidateId: candidate.id } },
+          select: {
+            rosterRotation: true,
+            accommodation: true,
+            food: true,
+            downtimeFacilities: true,
+            travelLogistics: true,
+            safetyCulture: true,
+          },
+        });
+        raterState = { eligible: true, existing };
+      }
+    }
+  }
 
   return h(
     "main",
@@ -143,6 +207,76 @@ export default async function SitePage({ params }: { params: { slug: string } })
             { className: "mt-3 space-y-3" },
             ...site.jobs.map((job: any) => h(JobCard, { key: job.id, job }))
           )
+    ),
+
+    h(
+      "section",
+      { className: "mt-10" },
+      h(
+        "h2",
+        { className: "font-display text-2xl uppercase tracking-wide" },
+        "Candidate ratings" + (ratingCount > 0 ? " (" + ratingCount + ")" : "")
+      ),
+      overallAvg !== null &&
+        h(
+          "p",
+          { className: "mt-1 text-sm text-ink/60" },
+          h("span", { className: "text-oregold" }, "★ " + overallAvg.toFixed(1)),
+          " average from candidates who interviewed at this site."
+        ),
+      h(
+        "div",
+        { className: "mt-3 grid gap-4 lg:grid-cols-[1fr_320px]" },
+        h(
+          "div",
+          null,
+          h(
+            "div",
+            { className: "card space-y-2" },
+            ratingCount === 0 &&
+              h(
+                "p",
+                { className: "pb-1 text-sm text-ink/60" },
+                "No ratings yet. Candidates who've interviewed for a role at " + site.name + " can leave the first one."
+              ),
+            ...categoryAverages.map((c) =>
+              h(
+                "div",
+                { key: c.key, className: "flex items-center justify-between gap-3 text-sm" },
+                h("span", { className: "text-ink/70" }, c.label),
+                ratingCount === 0
+                  ? h(
+                      "span",
+                      { className: "tracking-tight text-ink/20", "aria-label": "No rating yet" },
+                      "★★★★★"
+                    )
+                  : h(
+                      "span",
+                      { className: "text-oregold", "aria-label": c.avg!.toFixed(1) + " of 5" },
+                      "★ " + c.avg!.toFixed(1)
+                    )
+              )
+            ),
+            ratingCount > 0 &&
+              h(
+                "p",
+                { className: "pt-1 text-xs text-ink/50" },
+                "Based on " + ratingCount + " rating" + (ratingCount === 1 ? "" : "s") + "."
+              )
+          )
+        ),
+        h(
+          "div",
+          null,
+          raterState.eligible
+            ? h(MiningSiteRatingForm, { siteId: site.id, existing: raterState.existing })
+            : h(
+                "p",
+                { className: "card text-xs text-ink/50" },
+                "Ratings are limited to candidates who've reached at least an interview stage for a role at this site, so every rating reflects a real experience here -- not just an application."
+              )
+        )
+      )
     )
   );
 }
