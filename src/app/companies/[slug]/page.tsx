@@ -249,33 +249,40 @@ export default async function CompanyPage({ params }: { params: { slug: string }
                                 h(
                                               "div",
                                               null,
-                                              ratingCount === 0
-                                                ? h(
-                                                                    "p",
-                                                  { className: "card text-sm text-ink/60" },
-                                                                    `No ratings yet. Candidates who've interviewed with ${company.name} can leave the first one.`
-                                                                  )
-                                                : h(
-                                                                    "div",
-                                                  { className: "card space-y-2" },
-                                                                    ...categoryAverages.map((c) =>
-                                                                                          h(
-                                                                                                                  "div",
-                                                                                            { key: c.key, className: "flex items-center justify-between gap-3 text-sm" },
-                                                                                                                  h("span", { className: "text-ink/70" }, c.label),
-                                                                                                                  h(
+                                              h(
+                                                                  "div",
+                                                { className: "card space-y-2" },
+                                                                  ratingCount === 0 &&
+                                                                    h(
+                                                                                        "p",
+                                                                      { className: "pb-1 text-sm text-ink/60" },
+                                                                                        `No ratings yet. Candidates who've interviewed with ${company.name} can leave the first one.`
+                                                                                      ),
+                                                                  ...categoryAverages.map((c) =>
+                                                                                        h(
+                                                                                                                "div",
+                                                                                          { key: c.key, className: "flex items-center justify-between gap-3 text-sm" },
+                                                                                                                h("span", { className: "text-ink/70" }, c.label),
+                                                                                                                ratingCount === 0
+                                                                                                                  ? h(
+                                                                                                                                            "span",
+                                                                                                                    { className: "tracking-tight text-ink/20", "aria-label": "No rating yet" },
+                                                                                                                                            "★★★★★"
+                                                                                                                                          )
+                                                                                                                  : h(
                                                                                                                                             "span",
                                                                                                                     { className: "text-oregold", "aria-label": `${c.avg!.toFixed(1)} of 5` },
                                                                                                                                             `★ ${c.avg!.toFixed(1)}`
                                                                                                                                           )
-                                                                                                                )
-                                                                                                              ),
+                                                                                                              )
+                                                                                                            ),
+                                                                  ratingCount > 0 &&
                                                                     h(
-                                                                                          "p",
+                                                                                        "p",
                                                                       { className: "pt-1 text-xs text-ink/50" },
-                                                                                          `Based on ${ratingCount} rating${ratingCount === 1 ? "" : "s"}.`
-                                                                                        )
-                                                                  )
+                                                                                        `Based on ${ratingCount} rating${ratingCount === 1 ? "" : "s"}.`
+                                                                                      )
+                                                                )
                                             ),
                                 h(
                                               "div",
