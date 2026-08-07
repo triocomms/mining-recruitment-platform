@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { SUPPORTED_LOCALES, LOCALE_LABELS, LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE, type Locale } from "@/lib/i18n";
+import { SUPPORTED_LOCALES, LOCALE_LABELS, LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE, type Locale } from "@/lib/i18n/locale-config";
 
 /** Plain <select> to match the rest of the app -- there's no dropdown/menu
  *  primitive here beyond native selects (see every filter/form in the app).
