@@ -81,15 +81,22 @@ export default async function CompaniesIndexPage({
     null,
     h(
       "div",
-      {
-        className:
-          "relative -mx-4 mb-6 rounded-b-lg bg-gradient-to-br from-ink to-oxide-deep p-4 sm:p-6",
-      },
-      h("h1", { className: "font-display text-3xl font-bold uppercase tracking-tight text-white sm:text-4xl" }, "Mining companies"),
+      { className: "relative -mx-4 mb-6 h-56 overflow-hidden sm:h-72 sm:rounded-b-lg" },
+      h("img", {
+        src: "/mine-companies-hero.jpg",
+        alt: "Mining company operations",
+        className: "h-full w-full object-cover",
+      }),
+      h("div", { className: "absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/20 to-transparent" }),
       h(
-        "p",
-        { className: "mt-1 max-w-xl text-sm text-white/80" },
-        "Employers with an active profile across the global mining and resources industry — commodities, open roles and company details."
+        "div",
+        { className: "absolute inset-x-0 bottom-0 p-4 sm:p-6" },
+        h("h1", { className: "font-display text-3xl font-bold uppercase tracking-tight text-white sm:text-4xl" }, "Mining companies"),
+        h(
+          "p",
+          { className: "mt-1 max-w-xl text-sm text-white/80" },
+          "Employers with an active profile across the global mining and resources industry — commodities, open roles and company details."
+        )
       )
     ),
     h(
