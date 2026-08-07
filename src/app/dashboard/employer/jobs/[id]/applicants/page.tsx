@@ -11,9 +11,15 @@ export default async function ApplicantsPage({ params }: { params: { id: string 
 
   const job = await prisma.job.findFirst({
     where: { id: params.id, company: { ownerId: session.user.id } },
-    select: { id: true, title: true, slug: true },
+    select: { id: true, title: true, slug: true, companyId: true },
   });
   if (!job) notFound();
+
+  const templates = await prisma.rejectionTemplate.findMany({
+    where: { companyId: job.companyId },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, name: true, body: true },
+  });
 
   const applications = await prisma.application.findMany({
     where: { jobId: job.id },
@@ -50,6 +56,7 @@ export default async function ApplicantsPage({ params }: { params: { id: string 
 
       <div className="mt-6">
         <ApplicantPipeline
+          templates={templates}
           applications={applications.map((a) => ({
             id: a.id,
             status: a.status,

@@ -24,6 +24,8 @@ const STAGE_TONE: Record<string, string> = {
   WITHDRAWN: "bg-bone text-ink/50",
 };
 
+type RejectionTemplate = { id: string; name: string; body: string };
+
 type Applicant = {
   id: string;
   status: string;
@@ -45,7 +47,7 @@ type Applicant = {
   };
 };
 
-function ApplicantRow({ app }: { app: Applicant }) {
+function ApplicantRow({ app, templates }: { app: Applicant; templates: RejectionTemplate[] }) {
   const router = useRouter();
   const [status, setStatus] = useState(app.status);
   const [notes, setNotes] = useState(app.notes);
@@ -53,6 +55,9 @@ function ApplicantRow({ app }: { app: Applicant }) {
   const [busyStatus, setBusyStatus] = useState(false);
   const [busyNotes, setBusyNotes] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [rejectionMessage, setRejectionMessage] = useState("");
 
   async function patch(body: Record<string, unknown>) {
     const res = await fetch("/api/applications", {
@@ -67,6 +72,14 @@ function ApplicantRow({ app }: { app: Applicant }) {
   }
 
   async function changeStatus(next: string) {
+    if (next === "REJECTED") {
+      // Don't fire immediately -- open the picker so the employer can choose
+      // (or write) the message the candidate will actually see.
+      setSelectedTemplateId("");
+      setRejectionMessage("");
+      setRejecting(true);
+      return;
+    }
     const prev = status;
     setStatus(next);
     setBusyStatus(true);
@@ -76,6 +89,27 @@ function ApplicantRow({ app }: { app: Applicant }) {
       router.refresh();
     } catch (e: any) {
       setStatus(prev);
+      setError(e.message);
+    } finally {
+      setBusyStatus(false);
+    }
+  }
+
+  function pickTemplate(id: string) {
+    setSelectedTemplateId(id);
+    const t = templates.find((t) => t.id === id);
+    setRejectionMessage(t ? t.body : "");
+  }
+
+  async function sendRejection() {
+    setBusyStatus(true);
+    setError(null);
+    try {
+      await patch({ status: "REJECTED", rejectionMessage });
+      setStatus("REJECTED");
+      setRejecting(false);
+      router.refresh();
+    } catch (e: any) {
       setError(e.message);
     } finally {
       setBusyStatus(false);
@@ -169,14 +203,64 @@ function ApplicantRow({ app }: { app: Applicant }) {
           </button>
         </div>
       </div>
+      {rejecting && (
+        <div className="mt-3 rounded border border-oxide/20 bg-oxide/5 p-3">
+          <p className="text-xs font-semibold text-ink/70">Reject {app.candidate.name}</p>
+          {templates.length > 0 && (
+            <select
+              className="field mt-2 text-sm"
+              value={selectedTemplateId}
+              onChange={(e) => pickTemplate(e.target.value)}
+              aria-label="Rejection template"
+            >
+              <option value="">Write your own…</option>
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          )}
+          <textarea
+            className="field mt-2 w-full text-sm"
+            rows={4}
+            placeholder="Message sent to the candidate (leave blank for a generic message)"
+            value={rejectionMessage}
+            onChange={(e) => setRejectionMessage(e.target.value)}
+          />
+          <div className="mt-2 flex gap-2">
+            <button type="button" className="btn-primary text-sm" disabled={busyStatus} onClick={sendRejection}>
+              {busyStatus ? "Sending…" : "Send rejection"}
+            </button>
+            <button
+              type="button"
+              className="btn-ghost text-sm"
+              disabled={busyStatus}
+              onClick={() => setRejecting(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       {error && <p className="mt-1 text-xs text-oxide">{error}</p>}
     </li>
   );
 }
 
-export function ApplicantPipeline({ applications }: { applications: Applicant[] }) {
+export function ApplicantPipeline({
+  applications,
+  templates = [],
+}: {
+  applications: Applicant[];
+  templates?: RejectionTemplate[];
+}) {
   if (applications.length === 0) {
     return <p className="card text-sm text-ink/60">No applicants yet.</p>;
   }
-  return <ul className="space-y-3">{applications.map((a) => <ApplicantRow key={a.id} app={a} />)}</ul>;
+  return (
+    <ul className="space-y-3">
+      {applications.map((a) => (
+        <ApplicantRow key={a.id} app={a} templates={templates} />
+      ))}
+    </ul>
+  );
 }
