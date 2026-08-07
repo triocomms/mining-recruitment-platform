@@ -168,6 +168,14 @@ export default async function CandidateDashboard() {
                       {a.job.title}
                     </Link>
                     <p className="text-xs text-ink/60">{a.job.company.name} Â· applied {timeAgo(a.createdAt)}</p>
+                    {(a.status === "INTERVIEW" || a.interviewScheduledAt) && (
+                      <Link
+                        href={`/dashboard/candidate/applications/${a.id}/schedule`}
+                        className="text-xs text-patina underline"
+                      >
+                        {a.interviewScheduledAt ? "View interview details" : "Pick an interview time"}
+                      </Link>
+                    )}
                   </div>
                   <span className={`tag shrink-0 ${STATUS_TONE[a.status] ?? ""}`}>{a.status.toLowerCase()}</span>
                 </li>
