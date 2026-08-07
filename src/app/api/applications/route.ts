@@ -97,6 +97,10 @@ const patchSchema = z
     applicationId: z.string(),
     status: z.nativeEnum(ApplicationStatus).optional(),
     notes: z.string().trim().max(2000).nullable().optional(),
+    // Only meaningful alongside status: "REJECTED" -- either picked from a
+    // RejectionTemplate or written freeform, sent to the candidate in place
+    // of the generic rejection line (see statusNotificationCopy).
+    rejectionMessage: z.string().trim().max(2000).optional(),
   })
   .refine((d) => d.status !== undefined || d.notes !== undefined, { message: "Nothing to update" });
 
@@ -144,6 +148,7 @@ export async function PATCH(req: NextRequest) {
     data: {
       ...(d.status !== undefined ? { status: d.status } : {}),
       ...(d.notes !== undefined ? { notes: d.notes || null } : {}),
+      ...(d.status === "REJECTED" && d.rejectionMessage !== undefined ? { rejectionMessage: d.rejectionMessage || null } : {}),
       ...(reachesInterviewStage && !app.interviewedAt ? { interviewedAt: new Date() } : {}),
     },
   });
@@ -152,7 +157,7 @@ export async function PATCH(req: NextRequest) {
   // and only for statuses worth surfacing (see statusNotificationCopy).
   // Best-effort: notifyUser() never throws, so this can't fail the update.
   if (d.status !== undefined && isEmployerOwner && d.status !== app.status) {
-    const copy = statusNotificationCopy(d.status, app.job.title, app.job.company.name);
+    const copy = statusNotificationCopy(d.status, app.job.title, app.job.company.name, d.rejectionMessage);
     if (copy) {
       notifyUser({
         userId: app.candidate.userId,
