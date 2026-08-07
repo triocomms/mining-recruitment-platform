@@ -9,6 +9,7 @@ import { DeleteSavedSearchButton } from "@/components/DeleteSavedSearchButton";
 import { SavedSearchFrequencyToggle } from "@/components/SavedSearchFrequencyToggle";
 import { PromoteMeCard } from "@/components/PromoteMeCard";
 import { FEATURES } from "@/lib/feature-flags";
+import { getLocale, getDictionary } from "@/lib/i18n";
 import type { Prisma } from "@prisma/client";
 
 const STATUS_TONE: Record<string, string> = {
@@ -24,6 +25,7 @@ const STATUS_TONE: Record<string, string> = {
 export default async function CandidateDashboard() {
   const session = await auth();
   if (!session?.user) redirect("/login");
+  const dict = getDictionary(getLocale()).dashboard;
 
   const profile = await prisma.candidateProfile.findUnique({
     where: { userId: session.user.id },
@@ -58,9 +60,9 @@ export default async function CandidateDashboard() {
   if (!profile) redirect("/login");
 
   const profileGaps: string[] = [];
-  if (!profile.resumeKey) profileGaps.push("resume");
-  if (!profile.headline) profileGaps.push("headline");
-  if (!profile.summary) profileGaps.push("summary");
+  if (!profile.resumeKey) profileGaps.push(dict.gapResume);
+  if (!profile.headline) profileGaps.push(dict.gapHeadline);
+  if (!profile.summary) profileGaps.push(dict.gapSummary);
 
   // "Jobs matching you" -- reuses the same scoreMatch() the employer side
   // uses to rank candidates against a job (src/lib/matching.ts), just run
@@ -99,45 +101,44 @@ export default async function CandidateDashboard() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl uppercase tracking-wide">
-            G&rsquo;day, {profile.firstName}
+            {dict.greeting(profile.firstName)}
           </h1>
           <p className="mt-1 text-sm text-ink/60">
-            Profile is{" "}
+            {dict.profileIsPrefix}
             <span className={profile.visibility === "PUBLIC" ? "font-semibold text-patina" : "font-semibold"}>
-              {profile.visibility === "PUBLIC" ? "visible to verified employers" : "private"}
+              {profile.visibility === "PUBLIC" ? dict.profileVisible : dict.profilePrivate}
             </span>
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/dashboard/candidate/profile" className="btn-primary">Edit profile</Link>
-          <Link href="/dashboard/candidate/preview" className="btn-ghost">Preview my profile</Link>
-          <Link href="/dashboard/messages" className="btn-ghost">Messages</Link>
+          <Link href="/dashboard/candidate/profile" className="btn-primary">{dict.editProfile}</Link>
+          <Link href="/dashboard/candidate/preview" className="btn-ghost">{dict.previewProfile}</Link>
+          <Link href="/dashboard/messages" className="btn-ghost">{dict.messages}</Link>
         </div>
       </div>
 
       {profileGaps.length > 0 && (
         <div className="mt-4 rounded-md border border-oregold/40 bg-oregold/10 px-4 py-3 text-sm">
-          Complete your profile to apply faster -- missing: {profileGaps.join(", ")}.{" "}
-          <Link href="/dashboard/candidate/profile" className="font-semibold underline">Fix now</Link>
+          {dict.profileGapsPre}{profileGaps.join(", ")}{dict.profileGapsPost}{" "}
+          <Link href="/dashboard/candidate/profile" className="font-semibold underline">{dict.fixNow}</Link>
         </div>
       )}
 
       {hasMatchSignal && matchedJobs.length > 0 && (
         <section className="mt-8">
-          <h2 className="font-display text-xl uppercase tracking-wide">Jobs matching you</h2>
+          <h2 className="font-display text-xl uppercase tracking-wide">{dict.matchingHeading}</h2>
           <p className="mt-1 text-xs text-ink/50">
-            Based on your commodities, site experience, and roster preference -- same scoring employers see when
-            they search candidates, run the other way.
+            {dict.matchingSubtext}
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {matchedJobs.map(({ job, score, reasons }) => (
               <div key={job.id}>
                 <JobCard
                   job={job}
-                  topRight={<span className="tag whitespace-nowrap bg-patina/15 text-patina">{score}% match</span>}
+                  topRight={<span className="tag whitespace-nowrap bg-patina/15 text-patina">{dict.matchPercent(score)}</span>}
                 />
                 {reasons.length > 0 && (
-                  <p className="mt-1 px-1 text-xs text-ink/50">{reasons.join(" Â· ")}</p>
+                  <p className="mt-1 px-1 text-xs text-ink/50">{reasons.join(" · ")}</p>
                 )}
               </div>
             ))}
@@ -146,18 +147,17 @@ export default async function CandidateDashboard() {
       )}
       {!hasMatchSignal && (
         <div className="card mt-8 text-sm text-ink/60">
-          Add your commodities, site experience, or roster preference to{" "}
-          <Link href="/dashboard/candidate/profile" className="underline">your profile</Link> to see jobs matched to
-          you here.
+          {dict.noMatchSignalPre}
+          <Link href="/dashboard/candidate/profile" className="underline">{dict.noMatchSignalLink}</Link>{dict.noMatchSignalPost}
         </div>
       )}
 
       <div className="mt-8 grid gap-8 md:grid-cols-3">
         <section className="md:col-span-2">
-          <h2 className="font-display text-xl uppercase tracking-wide">Your applications</h2>
+          <h2 className="font-display text-xl uppercase tracking-wide">{dict.applicationsHeading}</h2>
           {profile.applications.length === 0 ? (
             <p className="card mt-3 text-sm text-ink/60">
-              No applications yet. <Link href="/jobs" className="underline">Browse open roles</Link>.
+              {dict.noApplicationsPre}<Link href="/jobs" className="underline">{dict.browseOpenRoles}</Link>{dict.noApplicationsPost}
             </p>
           ) : (
             <ul className="mt-3 space-y-2">
@@ -167,25 +167,25 @@ export default async function CandidateDashboard() {
                     <Link href={`/jobs/${a.job.slug}`} className="block truncate font-semibold hover:underline">
                       {a.job.title}
                     </Link>
-                    <p className="text-xs text-ink/60">{a.job.company.name} Â· applied {timeAgo(a.createdAt)}</p>
+                    <p className="text-xs text-ink/60">{a.job.company.name} · {dict.appliedPrefix} {timeAgo(a.createdAt)}</p>
                     {(a.status === "INTERVIEW" || a.interviewScheduledAt) && (
                       <Link
                         href={`/dashboard/candidate/applications/${a.id}/schedule`}
                         className="text-xs text-patina underline"
                       >
-                        {a.interviewScheduledAt ? "View interview details" : "Pick an interview time"}
+                        {a.interviewScheduledAt ? dict.viewInterviewDetails : dict.pickInterviewTime}
                       </Link>
                     )}
                   </div>
-                  <span className={`tag shrink-0 ${STATUS_TONE[a.status] ?? ""}`}>{a.status.toLowerCase()}</span>
+                  <span className={`tag shrink-0 ${STATUS_TONE[a.status] ?? ""}`}>{dict.statusLabels[a.status] ?? a.status.toLowerCase()}</span>
                 </li>
               ))}
             </ul>
           )}
 
-          <h2 className="mt-8 font-display text-xl uppercase tracking-wide">Recent messages</h2>
+          <h2 className="mt-8 font-display text-xl uppercase tracking-wide">{dict.messagesHeading}</h2>
           {profile.threads.length === 0 ? (
-            <p className="card mt-3 text-sm text-ink/60">No conversations yet.</p>
+            <p className="card mt-3 text-sm text-ink/60">{dict.noConversations}</p>
           ) : (
             <ul className="mt-3 space-y-2">
               {profile.threads.map((t) => (
@@ -207,9 +207,9 @@ export default async function CandidateDashboard() {
 
         <aside className="space-y-8">
           <div>
-            <h2 className="font-display text-xl uppercase tracking-wide">Saved jobs</h2>
+            <h2 className="font-display text-xl uppercase tracking-wide">{dict.savedJobsHeading}</h2>
             {profile.bookmarks.length === 0 ? (
-              <p className="card mt-3 text-sm text-ink/60">Nothing saved yet.</p>
+              <p className="card mt-3 text-sm text-ink/60">{dict.nothingSaved}</p>
             ) : (
               <ul className="mt-3 space-y-2">
                 {profile.bookmarks.map((b) => (
@@ -219,7 +219,7 @@ export default async function CandidateDashboard() {
                     </Link>
                     <p className="text-xs text-ink/60">
                       {b.job.company.name}
-                      {b.job.status !== "PUBLISHED" && <span className="text-oxide"> Â· no longer live</span>}
+                      {b.job.status !== "PUBLISHED" && <span className="text-oxide"> · {dict.noLongerLive}</span>}
                     </p>
                   </li>
                 ))}
@@ -228,9 +228,9 @@ export default async function CandidateDashboard() {
           </div>
 
           <div>
-            <h2 className="font-display text-xl uppercase tracking-wide">Following</h2>
+            <h2 className="font-display text-xl uppercase tracking-wide">{dict.followingHeading}</h2>
             {profile.followedCompanies.length === 0 ? (
-              <p className="card mt-3 text-sm text-ink/60">You&rsquo;re not following any companies.</p>
+              <p className="card mt-3 text-sm text-ink/60">{dict.notFollowingAnyCompanies}</p>
             ) : (
               <ul className="mt-3 space-y-2">
                 {profile.followedCompanies.map((f) => (
@@ -245,11 +245,11 @@ export default async function CandidateDashboard() {
           </div>
 
           <div>
-            <h2 className="font-display text-xl uppercase tracking-wide">Saved searches</h2>
+            <h2 className="font-display text-xl uppercase tracking-wide">{dict.savedSearchesHeading}</h2>
             {profile.savedSearches.length === 0 ? (
               <p className="card mt-3 text-sm text-ink/60">
-                No saved searches yet. Save a search from{" "}
-                <Link href="/jobs" className="underline">the jobs page</Link> to get emailed when new matches go live.
+                {dict.noSavedSearchesPre}
+                <Link href="/jobs" className="underline">{dict.theJobsPageLink}</Link>{dict.noSavedSearchesPost}
               </p>
             ) : (
               <ul className="mt-3 space-y-2">
@@ -264,16 +264,16 @@ export default async function CandidateDashboard() {
                     s.commodity && s.commodity.toLowerCase().replace(/_/g, " "),
                     s.siteType && s.siteType.toLowerCase().replace(/_/g, " "),
                     s.countryCode,
-                    s.fifoOnly && "FIFO only",
-                    s.minSalary != null && `min $${s.minSalary.toLocaleString()}`,
+                    s.fifoOnly && dict.fifoOnlySummary,
+                    s.minSalary != null && `${dict.minSalaryPrefix} $${s.minSalary.toLocaleString()}`,
                   ]
                     .filter(Boolean)
-                    .join(" Â· ");
+                    .join(" · ");
                   return (
                     <li key={s.id} className="card text-sm">
                       <div className="flex items-start justify-between gap-2">
                         <Link href={`/jobs?${params}`} className="font-semibold hover:underline">
-                          {s.label || summary || "All jobs"}
+                          {s.label || summary || dict.allJobsFallbackLabel}
                         </Link>
                         <DeleteSavedSearchButton id={s.id} />
                       </div>
@@ -291,18 +291,18 @@ export default async function CandidateDashboard() {
           {FEATURES.promoteMe && <PromoteMeCard latest={profile.promotions[0] ?? null} />}
 
           <div className="card border-ink/10 text-sm">
-            <p className="font-semibold">Account settings</p>
-            <p className="mt-1 text-ink/60">Change the email or password you sign in with.</p>
+            <p className="font-semibold">{dict.accountSettingsTitle}</p>
+            <p className="mt-1 text-ink/60">{dict.accountSettingsBody}</p>
             <Link href="/dashboard/settings" className="mt-2 inline-block underline">
-              Account settings â
+              {dict.accountSettingsLink}
             </Link>
           </div>
 
           <div className="card border-ink/10 text-sm">
-            <p className="font-semibold">Your data, your call</p>
-            <p className="mt-1 text-ink/60">Export or delete everything we hold about you.</p>
+            <p className="font-semibold">{dict.dataYourCallTitle}</p>
+            <p className="mt-1 text-ink/60">{dict.dataYourCallBody}</p>
             <Link href="/dashboard/candidate/privacy" className="mt-2 inline-block underline">
-              Privacy controls â
+              {dict.privacyControlsLink}
             </Link>
           </div>
         </aside>
