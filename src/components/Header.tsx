@@ -30,6 +30,7 @@ export async function Header() {
                   { className: "flex items-center gap-2 text-sm sm:gap-4" },
                           h(Link, { href: "/jobs", className: "rounded px-2 py-1 hover:text-hivis" }, "Jobs"),
                           h(Link, { href: "/sites", className: "hidden rounded px-2 py-1 hover:text-hivis sm:block" }, "Sites"),
+                          h(Link, { href: "/companies", className: "hidden rounded px-2 py-1 hover:text-hivis sm:block" }, "Companies"),
                           h(Link, { href: "/salaries", className: "hidden rounded px-2 py-1 hover:text-hivis sm:block" }, "Salaries"),
                           h(Link, { href: "/news", className: "hidden rounded px-2 py-1 hover:text-hivis sm:block" }, "News"),
                           h(Link, { href: "/pricing", className: "hidden rounded px-2 py-1 hover:text-hivis sm:block" }, "Pricing"),
