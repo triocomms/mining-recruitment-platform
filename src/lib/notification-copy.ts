@@ -12,12 +12,15 @@ export type NotificationCopy = { title: string; body: string };
  *  - WITHDRAWN is candidate-initiated; they don't need to be told about
  *    their own action.
  * Rejection copy is deliberately short and neutral per the brief: don't
- * over-explain a "no".
+ * over-explain a "no" -- unless the employer picked or wrote their own
+ * rejectionMessage (see RejectionTemplate), in which case that replaces the
+ * generic line so candidates get a clearer answer.
  */
 export function statusNotificationCopy(
   status: ApplicationStatus,
   jobTitle: string,
-  companyName: string
+  companyName: string,
+  rejectionMessage?: string | null
 ): NotificationCopy | null {
   switch (status) {
     case "SHORTLISTED":
@@ -38,7 +41,9 @@ export function statusNotificationCopy(
     case "REJECTED":
       return {
         title: "Application update",
-        body: `${companyName} has moved forward with other candidates for "${jobTitle}". Thanks for applying — keep browsing other roles that fit.`,
+        body:
+          rejectionMessage?.trim() ||
+          `${companyName} has moved forward with other candidates for "${jobTitle}". Thanks for applying — keep browsing other roles that fit.`,
       };
     default:
       return null;
