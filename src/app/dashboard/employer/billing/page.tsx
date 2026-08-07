@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PLANS, EARLY_ACCESS_MODE, EARLY_ACCESS_TRIAL_DAYS } from "@/lib/plans";
 import { getJobQuota } from "@/lib/quota";
 import { CheckoutButton } from "@/components/CheckoutButton";
+import { ManageBillingButton } from "@/components/ManageBillingButton";
 import type { PlanTier } from "@prisma/client";
 
 export default async function EmployerBillingPage({
@@ -51,6 +52,15 @@ export default async function EmployerBillingPage({
         {" · "}{quota.used}/{quota.quota} ads used this period · {quota.overageCredits} overage credit
         {quota.overageCredits === 1 ? "" : "s"}
       </p>
+
+      {company.subscription?.stripeCustomerId && (
+        <div className="mt-3">
+          <ManageBillingButton />
+          <p className="mt-1 text-xs text-ink/50">
+            Update your card, view invoices, or cancel — no need to email us.
+          </p>
+        </div>
+      )}
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         {(Object.keys(PLANS) as PlanTier[]).map((tier) => {
