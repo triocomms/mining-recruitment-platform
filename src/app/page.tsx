@@ -105,6 +105,8 @@ export default async function HomePage() {
         <HomepageBannerAd />
       </section>
 
+      <HomeWorldMap counts={jobsByCountry} />
+
       <section>
         <div className="mb-4 flex items-end justify-between">
           <div>
@@ -120,8 +122,6 @@ export default async function HomePage() {
           )}
         </div>
       </section>
-
-      <HomeWorldMap counts={jobsByCountry} />
 
       <section>
         <div className="mb-4 flex items-end justify-between">
