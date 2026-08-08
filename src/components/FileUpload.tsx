@@ -7,7 +7,7 @@ import { useState } from "react";
  * back to the given endpoint field. Files never touch the app server.
  */
 export function FileUpload(props: {
-  kind: "resume" | "coverLetter" | "photo" | "logo" | "kyb" | "certification";
+  kind: "resume" | "coverLetter" | "photo" | "logo" | "kyb" | "certification" | "adBanner";
   label: string;
   accept: string;
   field: string; // e.g. "resumeKey"
@@ -15,6 +15,7 @@ export function FileUpload(props: {
   endpoint: string; // e.g. "/api/profile"
   currentKey?: string | null;
   currentName?: string | null;
+  onUploaded?: (key: string) => void; // optional — lets a parent live-update a preview without a page refresh
 }) {
   const [state, setState] = useState<"idle" | "uploading" | "done" | "error">(
     props.currentKey ? "done" : "idle"
@@ -53,6 +54,7 @@ export function FileUpload(props: {
       if (!save.ok) throw new Error("Could not save file to your profile");
       setState("done");
       setMessage(file.name);
+      props.onUploaded?.(key);
     } catch (err: any) {
       setState("error");
       setMessage(err.message ?? "Upload failed");
