@@ -912,6 +912,12 @@ description       String? // long-form rich text, rendered from RichTextEditor m
   jobs                Job[]
   ratings             MiningSiteRating[]
 
+  // Admin opt-out for the site-level star-rating widget (see
+  // MiningSiteRating above), mirroring Company.ratingsEnabled. Defaults on;
+  // flip off for a specific site if its rating data is unreliable or
+  // disputed without touching the operator company's own ratings.
+  ratingsEnabled      Boolean            @default(true)
+
   @@index([status])
   @@index([countryCode, region])
   @@index([commodity])
@@ -942,4 +948,20 @@ model MiningSiteRating {
 
   @@unique([siteId, candidateId])
   @@index([siteId])
+}
+
+// Homepage banner ad, managed by site admins (see
+// src/app/dashboard/admin/homepage-ad). Deliberately a one-row singleton
+// (fixed id "homepage-ad") rather than a bookable/multi-slot ad model --
+// there is exactly one banner placement on the homepage today. imageKey
+// points at S3 (kind "adBanner", see src/lib/s3.ts) and is served publicly
+// via /api/files, same as blog/company media. The banner only renders when
+// enabled and both imageKey and linkUrl are set (see HomepageBannerAd.tsx).
+model HomepageAd {
+  id        String   @id @default(cuid())
+  imageKey  String?
+  linkUrl   String?
+  enabled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
