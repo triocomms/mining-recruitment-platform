@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     key.startsWith("blogImage/") ||
     key.startsWith("logo/") ||
     key.startsWith("companyMedia/") ||
-    key.startsWith("homepageBanner/")
+    key.startsWith("fifodidodaft/")
   ) {
     return NextResponse.redirect(await presignDownload(key));
   }
