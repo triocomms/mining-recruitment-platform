@@ -954,7 +954,7 @@ model MiningSiteRating {
 // src/app/dashboard/admin/homepage-ad). Deliberately a one-row singleton
 // (fixed id "homepage-ad") rather than a bookable/multi-slot ad model --
 // there is exactly one banner placement on the homepage today. imageKey
-// points at S3 (kind "adBanner", see src/lib/s3.ts) and is served publicly
+// points at S3 (kind "homepageBanner", see src/lib/s3.ts) and is served publicly
 // via /api/files, same as blog/company media. The banner only renders when
 // enabled and both imageKey and linkUrl are set (see HomepageBannerAd.tsx).
 model HomepageAd {
