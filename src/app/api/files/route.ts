@@ -12,13 +12,15 @@ export async function GET(req: NextRequest) {
   const key = req.nextUrl.searchParams.get("key");
   if (!key) return NextResponse.json({ error: "Missing key" }, { status: 400 });
 
-  // Blog imagery and employer branding media (logo + gallery photos) are
-  // public content shown on public pages — no sign-in needed to view them.
+  // Blog imagery, employer branding media (logo + gallery photos) and the
+  // homepage banner ad are public content shown on public pages — no
+  // sign-in needed to view them.
   if (
     key.startsWith("blogCover/") ||
     key.startsWith("blogImage/") ||
     key.startsWith("logo/") ||
-    key.startsWith("companyMedia/")
+    key.startsWith("companyMedia/") ||
+    key.startsWith("adBanner/")
   ) {
     return NextResponse.redirect(await presignDownload(key));
   }
