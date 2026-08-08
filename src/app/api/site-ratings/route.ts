@@ -39,6 +39,11 @@ export async function POST(req: NextRequest) {
                 );
     }
 
+  const site = await prisma.miningSite.findUnique({ where: { id: d.siteId }, select: { ratingsEnabled: true } });
+    if (!site?.ratingsEnabled) {
+          return NextResponse.json({ error: "Ratings are turned off for this site" }, { status: 403 });
+    }
+
   const ratingData = {
         rosterRotation: d.rosterRotation,
         accommodation: d.accommodation,

@@ -43,6 +43,7 @@ type Site = {
   heroImageKey: string | null;
   galleryKeys: string[];
   status: "DRAFT" | "PENDING_REVIEW" | "PUBLISHED";
+  ratingsEnabled: boolean;
   operatorCompany: { id: string; name: string; slug: string } | null;
 };
 
@@ -77,6 +78,7 @@ export function AdminSiteManager({ initialSites }: { initialSites: Site[] }) {
   const [wifiNotes, setWifiNotes] = useState("");
   const [gym, setGym] = useState(false);
   const [pool, setPool] = useState(false);
+  const [ratingsEnabled, setRatingsEnabled] = useState(true);
   const [foodNotes, setFoodNotes] = useState("");
   const [otherAmenities, setOtherAmenities] = useState("");
   const [busy, setBusy] = useState(false);
@@ -98,6 +100,7 @@ export function AdminSiteManager({ initialSites }: { initialSites: Site[] }) {
     setWifiNotes("");
     setGym(false);
     setPool(false);
+    setRatingsEnabled(true);
     setFoodNotes("");
     setOtherAmenities("");
   }
@@ -118,6 +121,7 @@ export function AdminSiteManager({ initialSites }: { initialSites: Site[] }) {
     setWifiNotes(site.wifiNotes ?? "");
     setGym(site.gym);
     setPool(site.pool);
+    setRatingsEnabled(site.ratingsEnabled);
     setFoodNotes(site.foodNotes ?? "");
     setOtherAmenities(site.otherAmenities ?? "");
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
@@ -143,6 +147,7 @@ export function AdminSiteManager({ initialSites }: { initialSites: Site[] }) {
       wifiNotes: wifiNotes || undefined,
       gym,
       pool,
+      ratingsEnabled,
       foodNotes: foodNotes || undefined,
       otherAmenities: otherAmenities || undefined,
     };
@@ -179,6 +184,16 @@ export function AdminSiteManager({ initialSites }: { initialSites: Site[] }) {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) setSites((prev) => prev.map((s) => (s.id === site.id ? data.site : s)));
+  }
+
+  async function toggleRatings(site: Site) {
+    const res = await fetch("/api/admin/sites/" + site.id, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ratingsEnabled: !site.ratingsEnabled }),
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) setSites((prev) => prev.map((s) => (s.id === site.id ? data.site : s)));
@@ -319,6 +334,16 @@ export function AdminSiteManager({ initialSites }: { initialSites: Site[] }) {
           { className: "flex items-center gap-2 text-sm" },
           h("input", { type: "checkbox", checked: pool, onChange: (e: any) => setPool(e.target.checked) }),
           "Pool"
+        ),
+        h(
+          "label",
+          { className: "flex items-center gap-2 text-sm sm:col-span-2" },
+          h("input", {
+            type: "checkbox",
+            checked: ratingsEnabled,
+            onChange: (e: any) => setRatingsEnabled(e.target.checked),
+          }),
+          "Candidate star ratings enabled for this site"
         )
       ),
       error && h("p", { className: "text-sm text-oxide" }, error),
@@ -406,6 +431,11 @@ export function AdminSiteManager({ initialSites }: { initialSites: Site[] }) {
                   { onClick: () => setStatus(site, site.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED"), className: "btn-primary text-sm" },
                   site.status === "PUBLISHED" ? "Unpublish" : "Publish"
                 ),
+            h(
+              "button",
+              { onClick: () => toggleRatings(site), className: "text-sm underline" },
+              site.ratingsEnabled ? "Turn ratings off" : "Turn ratings on"
+            ),
             h(
               "button",
               { onClick: () => removeSite(site.id), className: "text-sm text-oxide underline" },

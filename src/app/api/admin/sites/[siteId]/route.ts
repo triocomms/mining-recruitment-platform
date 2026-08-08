@@ -38,6 +38,7 @@ const patchSchema = z.object({
   wifiNotes: z.string().trim().max(200).nullable().optional(),
   gym: z.boolean().optional(),
   pool: z.boolean().optional(),
+  ratingsEnabled: z.boolean().optional(),
   foodNotes: z.string().trim().max(400).nullable().optional(),
   otherAmenities: z.string().trim().max(400).nullable().optional(),
   status: z.enum(["DRAFT", "PUBLISHED"]).optional(),

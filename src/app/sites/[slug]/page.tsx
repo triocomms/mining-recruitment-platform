@@ -98,7 +98,7 @@ export default async function SitePage({ params }: { params: { slug: string } })
       safetyCulture: number;
     } | null;
   } = { eligible: false, existing: null };
-  if (session?.user.role === "CANDIDATE") {
+  if (session?.user.role === "CANDIDATE" && site.ratingsEnabled) {
     const candidate = await prisma.candidateProfile.findUnique({ where: { userId: session.user.id } });
     if (candidate) {
       const interviewed = await prisma.application.findFirst({
@@ -209,6 +209,7 @@ export default async function SitePage({ params }: { params: { slug: string } })
           )
     ),
 
+    site.ratingsEnabled &&
     h(
       "section",
       { className: "mt-10" },
