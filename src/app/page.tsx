@@ -2,8 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { JobCard } from "@/components/JobCard";
 import { HomeWorldMap } from "@/components/HomeWorldMap";
-import { FeaturedEmployerAd } from "@/components/FeaturedEmployerAd";
-import { FEATURES } from "@/lib/feature-flags";
+import { HomepageBannerAd } from "@/components/HomepageBannerAd";
 import { pickDiverseJobs } from "@/lib/utils";
 import { getLocale, getDictionary } from "@/lib/i18n";
 
@@ -103,7 +102,7 @@ export default async function HomePage() {
         </div>
         </div>
 
-        {FEATURES.featuredEmployerAd && <FeaturedEmployerAd />}
+        <HomepageBannerAd />
       </section>
 
       <section>
