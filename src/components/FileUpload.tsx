@@ -7,7 +7,7 @@ import { useState } from "react";
  * back to the given endpoint field. Files never touch the app server.
  */
 export function FileUpload(props: {
-  kind: "resume" | "coverLetter" | "photo" | "logo" | "kyb" | "certification" | "adBanner";
+  kind: "resume" | "coverLetter" | "photo" | "logo" | "kyb" | "certification" | "fifodidodaft";
   label: string;
   accept: string;
   field: string; // e.g. "resumeKey"

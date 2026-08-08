@@ -36,7 +36,7 @@ export function HomepageAdForm(props: { initial: { imageKey: string | null; link
     <form onSubmit={save} className="card space-y-4">
       <div>
         <FileUpload
-          kind="adBanner"
+          kind="fifodidodaft"
           label="Banner image"
           accept="image/jpeg,image/png,image/webp"
           field="imageKey"
